@@ -369,3 +369,105 @@ test("options are validated and storage keys can keep existing names", async () 
   await sso.fetch("/api/data");
   assert.equal(backend.calls.at(-1).authorization, "Bearer at-1");
 });
+
+function heldCrypto() {
+  let release, entered;
+  const held = new Promise((resolve) => (release = resolve));
+  const started = new Promise((resolve) => (entered = resolve));
+  return {
+    crypto: {
+      getRandomValues: (bytes) => crypto.getRandomValues(bytes),
+      subtle: { digest: async (...args) => { entered(); await held; return crypto.subtle.digest(...args); } },
+    },
+    started,
+    release: () => release(),
+  };
+}
+
+test("concurrent 401s start a single authorization transaction", async () => {
+  const backend = new Backend({ "/api/session": () => json(401, {}), "/api/services": () => json(401, {}) });
+  const { browser, sso, events } = await signedIn(backend);
+
+  const results = await Promise.allSettled([sso.fetch("/api/session"), sso.fetch("/api/services")]);
+
+  assert.deepEqual(results.map((r) => r.reason.redirecting), [true, true]);
+  assert.equal(browser.assigned.length, 1);
+  const state = new URL(browser.assigned[0]).searchParams.get("state");
+  assert.equal(JSON.parse(browser.store.get("leap.sso.pending")).state, state);
+  assert.deepEqual(events, [], "no sign-in flash while redirecting");
+});
+
+test("logout cancels an automatic sign-in that is still preparing PKCE", async () => {
+  const held = heldCrypto();
+  const backend = new Backend({ "/api/data": () => json(401, {}), [BASE + "/logout"]: () => json(200, {}) });
+  const { browser, sso } = await signedIn(backend, { crypto: held.crypto });
+
+  const pending = sso.fetch("/api/data").catch((error) => error);
+  await held.started;
+  browser.store.set("leap.sso.session", JSON.stringify(session()));
+  await sso.logout();
+  held.release();
+  await pending;
+
+  assert.equal(browser.assigned.length, 0, "late navigation is dropped");
+  assert.equal(browser.store.has("leap.sso.pending"), false);
+});
+
+test("logout during the callback exchange drops the late tokens", async () => {
+  let releaseExchange;
+  const backend = new Backend({
+    [BASE + "/exchange"]: () => new Promise((resolve) => (releaseExchange = () => resolve(json(200, session())))),
+  });
+  const browser = new Browser();
+  await start(browser, backend).sso.boot();
+  browser.callback({ code: "code-1" });
+  const { sso } = start(browser, backend);
+
+  const booting = sso.boot();
+  while (!releaseExchange) await new Promise((resolve) => setImmediate(resolve));
+  await sso.logout().catch(() => {});
+  releaseExchange();
+  await booting;
+
+  assert.equal(browser.store.has("leap.sso.session"), false);
+});
+
+test("a late 401 for an older token retries with the newer one", async () => {
+  const backend = new Backend({
+    "/api/data": (call) => (call.authorization === "Bearer at-2" ? json(200, {}) : json(401, {})),
+  });
+  const { browser } = await signedIn(backend);
+  const original = backend.fetch;
+  backend.fetch = async (url, init) => {
+    const response = await original(url, init);
+    // Another request refreshed the session while this one was in flight.
+    browser.store.set("leap.sso.session", JSON.stringify(session({ access_token: "at-2", refresh_token: "rt-2" })));
+    return response;
+  };
+  const { sso: racing } = start(browser, backend);
+
+  assert.equal((await racing.fetch("/api/data")).status, 200);
+  assert.equal(JSON.parse(browser.store.get("leap.sso.session")).access_token, "at-2");
+  assert.equal(browser.assigned.length, 0);
+});
+
+test("a refresh that finishes after logout does not restore credentials", async () => {
+  let releaseRefresh;
+  const backend = new Backend({
+    [BASE + "/refresh"]: () => new Promise((resolve) => (releaseRefresh = () => resolve(json(200, session({ access_token: "late" }))))),
+    [BASE + "/logout"]: () => json(200, {}),
+    "/api/data": () => json(200, {}),
+  });
+  const { browser, sso } = await signedIn(backend);
+  browser.store.set("leap.sso.session", JSON.stringify(session({ expires_at: nowSeconds() + 10 })));
+
+  const pending = sso.fetch("/api/data").catch((error) => error);
+  while (!releaseRefresh) await new Promise((resolve) => setImmediate(resolve));
+  browser.store.set("leap.sso.session", JSON.stringify(session()));
+  await sso.logout();
+  releaseRefresh();
+  const error = await pending;
+
+  assert.equal(error.status, 401);
+  assert.equal(browser.store.has("leap.sso.session"), false);
+});

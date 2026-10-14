@@ -178,18 +178,25 @@ class BrowserSSO:
 
     # -- online session check and logout -----------------------------------------------
 
-    def check_session(self, access_token: str) -> AccessTokenContext:
+    def check_session(
+        self, access_token: str, *, verified: AccessTokenContext | None = None
+    ) -> AccessTokenContext:
         """Verify locally, then ask the server whether the sign-in is still live.
 
         Call on every protected request and do not cache the result, so that a logout
-        elsewhere takes effect on the next request.
+        elsewhere takes effect on the next request. Pass ``verified`` when the same token was
+        just verified with this service's verifier, to skip verifying it twice.
         """
-        context = _require_browser_binding(self._verifier.verify(access_token))
+        context = _require_browser_binding(verified or self._verifier.verify(access_token))
         response = self._send_sync(self._bearer_request(SESSION_PATH, access_token, None))
         return self._session_result(response, context)
 
-    async def check_session_async(self, access_token: str) -> AccessTokenContext:
-        context = _require_browser_binding(await self._verifier.verify_async(access_token))
+    async def check_session_async(
+        self, access_token: str, *, verified: AccessTokenContext | None = None
+    ) -> AccessTokenContext:
+        context = _require_browser_binding(
+            verified or await self._verifier.verify_async(access_token)
+        )
         response = await self._send_async(self._bearer_request(SESSION_PATH, access_token, None))
         return self._session_result(response, context)
 

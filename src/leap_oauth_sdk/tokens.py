@@ -19,7 +19,7 @@ import httpx
 import jwt
 
 from .config import LeapAuthConfig
-from .errors import Forbidden, InvalidResponse, ReauthRequired, Retryable
+from .errors import Forbidden, InvalidResponse, OAuthSDKError, ReauthRequired, Retryable
 
 _MAX_TOKEN_BYTES = 16 * 1024
 _MAX_JWKS_BYTES = 64 * 1024
@@ -75,6 +75,7 @@ class AccessTokenVerifier:
         self._clock = clock
         self._keys: list[dict[str, Any]] | None = None
         self._fetched_at: float | None = None
+        self._failed_at: float | None = None
         self._sync_lock = threading.Lock()
         self._async_lock: asyncio.Lock | None = None
 
@@ -209,6 +210,7 @@ class AccessTokenVerifier:
 
     def _fetch_sync(self) -> list[dict[str, Any]]:
         with self._sync_lock:
+            self._require_retry_allowed()
             try:
                 if self._http_client is not None:
                     response = self._http_client.get(
@@ -218,6 +220,7 @@ class AccessTokenVerifier:
                     with httpx.Client(timeout=self._config.timeout_seconds) as client:
                         response = client.get(self._config.resolved_jwks_url, **_REQUEST_OPTIONS)
             except httpx.HTTPError as exc:
+                self._failed_at = self._clock()
                 raise _jwks_unavailable() from exc
             return self._store(response)
 
@@ -225,6 +228,7 @@ class AccessTokenVerifier:
         if self._async_lock is None:
             self._async_lock = asyncio.Lock()
         async with self._async_lock:
+            self._require_retry_allowed()
             try:
                 if self._async_http_client is not None:
                     response = await self._async_http_client.get(
@@ -236,10 +240,32 @@ class AccessTokenVerifier:
                             self._config.resolved_jwks_url, **_REQUEST_OPTIONS
                         )
             except httpx.HTTPError as exc:
+                self._failed_at = self._clock()
                 raise _jwks_unavailable() from exc
             return self._store(response)
 
+    def _require_retry_allowed(self) -> None:
+        # After a failed fetch, wait out the cooldown instead of letting every request hit
+        # the authorization server while it is down.
+        if (
+            self._failed_at is not None
+            and self._clock() - self._failed_at < self._config.jwks_refresh_cooldown_seconds
+        ):
+            raise _jwks_unavailable()
+
     def _store(self, response: httpx.Response) -> list[dict[str, Any]]:
+        try:
+            keys = self._parse(response)
+        except OAuthSDKError:
+            self._failed_at = self._clock()
+            raise
+        self._keys = keys
+        self._fetched_at = self._clock()
+        self._failed_at = None
+        return keys
+
+    @staticmethod
+    def _parse(response: httpx.Response) -> list[dict[str, Any]]:
         # A failed or malformed fetch is never cached and never falls back to old keys.
         if response.status_code != 200:
             raise _jwks_unavailable()
@@ -249,10 +275,7 @@ class AccessTokenVerifier:
             payload = json.loads(response.content)
         except ValueError as exc:
             raise InvalidResponse("access_token_jwks_invalid", "JWKS response is not JSON") from exc
-        keys = _key_list(payload)
-        self._keys = keys
-        self._fetched_at = self._clock()
-        return keys
+        return _key_list(payload)
 
     @staticmethod
     def _find(keys: list[dict[str, Any]], kid: str, alg: str) -> dict[str, Any] | None:

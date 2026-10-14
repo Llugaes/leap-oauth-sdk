@@ -6,8 +6,9 @@ failure as one of four error categories, so each service handles retries, re-log
 permission errors the same way.
 
 Status: alpha. This release contains access token verification, the server side of browser
-sign-in (code exchange, refresh, online session check, logout), encrypted cookie sessions and
-`leap-sso.js`, the matching browser module. Directory lookup and member management are planned.
+sign-in (code exchange, refresh, online session check, logout), encrypted cookie sessions,
+`leap-sso.js` (the matching browser module), principal lookup for admin pickers and admin
+member rules.
 
 ## Install
 
@@ -81,7 +82,8 @@ responds with `exc.status`, `exc.headers` and the body `exc.to_dict()`:
 
 Protected API routes call `sso.check_session(bearer_token)` on every request and must not
 cache the result, so that signing out in one service takes effect everywhere on the next
-request. An already-ended sign-in counts as a successful logout.
+request; pass `verified=` when the same token was already verified locally. An already-ended
+sign-in counts as a successful logout.
 
 ### Browser module
 
@@ -146,6 +148,59 @@ seconds so a late request never replays the spent refresh token. `CookieCipher` 
 `previous_secrets` for rotation and a `context` string; `legacy_loader` lets a service read its
 old cookie format once and rewrite it.
 
+## Principal lookup
+
+Admin pages pick people through the authorization server instead of typing subject ids.
+`PrincipalDirectory` uses a service lookup credential, never the admin's own token.
+
+```python
+from leap_oauth_sdk import PrincipalCandidate, PrincipalDirectory
+
+directory = PrincipalDirectory(config, lookup_token=lookup_token)
+
+result = directory.search("ann")           # principals plus directory users; < 2 chars → empty
+rows = [c.to_dict() for c in result.candidates]   # send to the page; the page posts one back
+picked = PrincipalCandidate.from_dict(posted)     # untrusted: only ids are kept
+accepted = directory.canonicalize([picked, "usr_existing"])
+```
+
+- `canonicalize()` binds directory users to principals, follows aliases to the canonical
+  subject and requires active principals of `allowed_principal_types` (default `human`). It is
+  all or nothing: any rejected pick raises `PrincipalSelectionError` (422) whose `rejected`
+  maps each pick to a reason, and nothing is accepted.
+- `validate()` returns status and profile per subject in batches of 100, for listing.
+- A rejected lookup credential is reported as `InvalidResponse`, not `ReauthRequired`: it is a
+  configuration problem, and the admin must not be sent to sign in again.
+- `api_base_url` points lookups at an internal address of the authorization server.
+
+## Admin members
+
+`MemberService` applies the same rules in every service; storage stays in the service.
+
+```python
+from leap_oauth_sdk import JsonFileMemberStore, MemberPolicy, MemberService
+
+members = MemberService(
+    MemberPolicy(owners=frozenset({owner_subject})),  # owners come only from configuration
+    JsonFileMemberStore("/data/admins.json"),          # or your own MemberStore
+    directory,                                         # None: list and remove only
+)
+
+members.role_for(subject)                  # "owner" | "member" | None, read on every call
+snapshot = members.list()                  # profiles from validate(); degrades when it fails
+version = members.add(actor, [picked], expected_version=snapshot.version)
+members.remove(actor, subject, expected_version=version)
+```
+
+- Only owners add or remove members, owners cannot be removed, and owners in a selection are
+  ignored. Every write carries the version the admin saw; a concurrent change raises
+  `MemberError` `member_version_conflict` (409) instead of overwriting.
+- `MemberStore` has two methods, `load()` and `apply(change, expected_version=)`; `apply` must
+  persist the change and its `MemberChange` audit record atomically. `JsonFileMemberStore` is a
+  reference implementation for a single replica on a persistent volume.
+- `MemberError` has the same `to_dict()` shape as the SDK errors. Messages are English; map
+  `code` to your own wording.
+
 ## Verification rules
 
 - Signature algorithm must be in `allowed_algorithms` (default `EdDSA` only); the token must
@@ -155,8 +210,9 @@ old cookie format once and rewrite it.
 - `ver` must equal `token_version`; `status` must be `active`; `source.channel` must be present;
   `purpose` must be in `allowed_purposes` (a token without `purpose` counts as `access`).
 - The JWKS is cached for `jwks_cache_seconds` (300). An unknown `kid` forces at most one refetch
-  per `jwks_refresh_cooldown_seconds` (10). A failed or malformed fetch is never cached and never
-  falls back to expired keys. Redirects are not followed.
+  per `jwks_refresh_cooldown_seconds` (10). A failed or malformed fetch is never cached, never
+  falls back to expired keys and is not retried within the same cooldown. Redirects are not
+  followed.
 
 Business authorization (roles, resources, fields, actions) stays in your service. A verified
 token only proves who the caller is.

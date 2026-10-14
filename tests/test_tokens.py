@@ -161,10 +161,15 @@ def test_jwks_failures_are_retryable_and_not_cached(config, key, claims, clock: 
         verifier.verify(token)
     assert exc_info.value.code == "auth_upstream_unavailable"
     assert exc_info.value.status == 503
+    # Inside the cooldown a failed fetch is not retried; the authorization server is spared.
     with pytest.raises(Retryable):
         verifier.verify(token)
-    with pytest.raises(InvalidResponse):
-        verifier.verify(token)
+    assert route.call_count == 1
+    for expected in (Retryable, InvalidResponse):
+        clock.now += config.jwks_refresh_cooldown_seconds
+        with pytest.raises(expected):
+            verifier.verify(token)
+    clock.now += config.jwks_refresh_cooldown_seconds
     assert verifier.verify(token).subject_id == "usr_1"
     assert route.call_count == 4
 

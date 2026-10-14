@@ -18,9 +18,28 @@ from .cookie_session import (
     CookieSessionManager,
 )
 from .errors import Forbidden, InvalidResponse, OAuthSDKError, ReauthRequired, Retryable
+from .members import (
+    JsonFileMemberStore,
+    Member,
+    MemberChange,
+    MemberError,
+    MemberPolicy,
+    MemberService,
+    MemberSnapshot,
+    MemberStore,
+    StoredMembers,
+    version_conflict,
+)
+from .principals import (
+    PickerResult,
+    PrincipalCandidate,
+    PrincipalDirectory,
+    PrincipalSelectionError,
+    PrincipalStatus,
+)
 from .tokens import AccessTokenContext, AccessTokenVerifier
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 
 def static_dir() -> Path:
@@ -43,12 +62,27 @@ __all__ = [
     "CookieSessionManager",
     "Forbidden",
     "InvalidResponse",
+    "JsonFileMemberStore",
     "LeapAuthConfig",
     "LogoutScope",
+    "Member",
+    "MemberChange",
+    "MemberError",
+    "MemberPolicy",
+    "MemberService",
+    "MemberSnapshot",
+    "MemberStore",
     "OAuthSDKError",
+    "PickerResult",
+    "PrincipalCandidate",
+    "PrincipalDirectory",
+    "PrincipalSelectionError",
+    "PrincipalStatus",
     "ReauthRequired",
     "Retryable",
+    "StoredMembers",
     "__version__",
     "classify_response",
     "static_dir",
+    "version_conflict",
 ]

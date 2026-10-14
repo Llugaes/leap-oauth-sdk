@@ -112,6 +112,9 @@
     var attempted = false;
     var leaving = false;
     var refreshing = null;
+    var beginning = null;
+    // Bumped by logout: a sign-in, callback or refresh started earlier must not finish.
+    var epoch = 0;
 
     function hook(name) {
       var fn = opts.hooks[name];
@@ -188,15 +191,26 @@
       return true;
     }
 
-    async function begin(explicit) {
+    // One authorization redirect at a time: concurrent 401s must not create two PKCE
+    // transactions, or the second overwrites the state the first callback needs.
+    function begin(explicit) {
+      if (!beginning) {
+        beginning = startAuthorization(explicit, epoch).finally(function () { beginning = null; });
+      }
+      return beginning;
+    }
+
+    async function startAuthorization(explicit, turn) {
       var cfg = await config();
+      if (turn !== epoch) return false;
       if (!cfg.enabled) throw new LeapSSOError(messages.disabled, {status: 503});
-      if (redirectToCanonical(cfg)) return;
+      if (redirectToCanonical(cfg)) return true;
       attempted = true;
-      storage.removeItem(keys.loggedOut);
       var verifier = base64url(crypto.getRandomValues(new Uint8Array(32)));
       var state = base64url(crypto.getRandomValues(new Uint8Array(32)));
       var digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier));
+      if (turn !== epoch) return false;
+      storage.removeItem(keys.loggedOut);
       storage.setItem(keys.pending, JSON.stringify({
         state: state, verifier: verifier, created: now(),
         next: location.pathname + location.search + location.hash,
@@ -210,12 +224,14 @@
       if (explicit) params.allow_login = "1";
       url.search = new URLSearchParams(params).toString();
       location.assign(url.href);
+      return true;
     }
 
     // Lost or rejected credentials: one automatic attempt per page load, then show sign-in.
     async function unauthorized(error) {
       if (bearer) clearSession();
-      if (!attempted && !leaving) {
+      if (beginning || (!attempted && !leaving)) {
+        attempted = true;
         await begin(false);
         throw new LeapSSOError(messages.redirecting, {status: 401, code: error.code, redirecting: true});
       }
@@ -224,6 +240,7 @@
     }
 
     async function complete(cfg) {
+      var turn = epoch;
       var query = new URLSearchParams(location.search);
       if (!query.has("code") && !query.has("error")) return false;
       if (location.pathname !== new URL(cfg.redirect_uri).pathname) return false;
@@ -248,6 +265,7 @@
       if (!result.response.ok) {
         throw categoryError(result.response.status, result.data.error, messages.sessionExpired);
       }
+      if (turn !== epoch) return false; // logged out while exchanging: drop the late tokens
       if (bearer) saveSession(result.data);
       storage.removeItem(keys.loggedOut);
       return true;
@@ -287,7 +305,9 @@
     }
 
     async function refreshNow(session) {
+      var turn = epoch;
       var result = await post("/refresh", {refresh_token: session.refresh_token});
+      if (turn !== epoch) throw new LeapSSOError(messages.sessionExpired, {status: 401});
       if (result.response.ok) return saveSession(result.data);
       var error = categoryError(result.response.status, result.data.error, messages.sessionExpired);
       // In bearer mode a rotation conflict means another tab (a duplicated tab copies
@@ -312,11 +332,18 @@
     async function request(url, init, retry) {
       var options = Object.assign({}, init || {});
       var headers = new Headers(options.headers || {});
-      if (bearer) headers.set("Authorization", "Bearer " + (await freshSession()).access_token);
+      var used = null;
+      if (bearer) {
+        used = (await freshSession()).access_token;
+        headers.set("Authorization", "Bearer " + used);
+      }
       options.headers = headers;
       var response = await fetcher(url, options);
       if (response.status === 401) {
         var data = await readJson(response);
+        // A late answer to a request sent with an older token must not drop newer credentials.
+        var current = bearer ? loadSession() : null;
+        if (current && current.access_token !== used && retry < 1) return request(url, init, retry + 1);
         return unauthorized(categoryError(401, data.error, messages.sessionExpired));
       }
       // Cookie mode: two replicas refreshed the shared cookie at once. The winner's
@@ -333,6 +360,7 @@
     }
 
     async function logout(scope) {
+      epoch++;
       leaving = true;
       try {
         var token = null;

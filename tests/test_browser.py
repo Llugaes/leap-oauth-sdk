@@ -214,6 +214,22 @@ def test_check_session_verifies_locally_then_online(sso: BrowserSSO, key, claims
     assert route.call_count == 1
 
 
+@respx.mock
+async def test_check_session_accepts_a_verified_context(sso: BrowserSSO, key, claims) -> None:
+    token = key.sign(claims(browser_sid="bsid-1"))
+    respx.post(SESSION_URL).mock(
+        return_value=httpx.Response(
+            200, json={"active": True, "subject_id": "usr_1", "audience": AUDIENCE}
+        )
+    )
+    context = sso.verifier.verify(token)
+    assert sso.check_session(token, verified=context) is context
+    assert await sso.check_session_async(token, verified=context) is context
+    device = sso.verifier.verify(key.sign(claims()))
+    with pytest.raises(ReauthRequired):
+        sso.check_session(token, verified=device)
+
+
 @pytest.mark.parametrize(
     ("response", "category", "code"),
     [
