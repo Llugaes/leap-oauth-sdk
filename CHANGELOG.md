@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.0 (unreleased)
+## 0.1.0 (2026-10-14)
 
 - `LeapAuthConfig` with explicit issuer, audience, JWKS URL and verification policy.
 - `AccessTokenVerifier` with blocking and async verification sharing one JWKS cache.
