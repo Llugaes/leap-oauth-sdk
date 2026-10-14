@@ -9,7 +9,7 @@ import jwt
 import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
-from leap_oauth_sdk import LeapAuthConfig
+from leap_oauth_sdk import AccessTokenVerifier, BrowserClientConfig, BrowserSSO, LeapAuthConfig
 
 ISSUER = "https://auth.example.com"
 AUDIENCE = "example-service"
@@ -75,3 +75,41 @@ class FakeClock:
 @pytest.fixture
 def clock() -> FakeClock:
     return FakeClock()
+
+
+TOKEN_URL = ISSUER + "/api/oauth/token"
+SESSION_URL = ISSUER + "/api/identity/browser/session"
+LOGOUT_URL = ISSUER + "/api/identity/browser/logout"
+
+
+@pytest.fixture
+def browser_client() -> BrowserClientConfig:
+    return BrowserClientConfig(
+        client_id="web-example",
+        redirect_uri="https://app.example.com/auth/callback",
+        resource="https://app.example.com/",
+    )
+
+
+@pytest.fixture
+def sso(config: LeapAuthConfig, browser_client: BrowserClientConfig, key: SigningKey) -> BrowserSSO:
+    verifier = AccessTokenVerifier(config, jwks={"keys": [key.jwk]})
+    return BrowserSSO(config, browser_client, verifier)
+
+
+@pytest.fixture
+def token_response(
+    key: SigningKey, claims: Callable[..., dict[str, Any]]
+) -> Callable[..., dict[str, Any]]:
+    def build(refresh_token: str = "rt-1", **overrides: Any) -> dict[str, Any]:
+        payload = claims(**{"browser_sid": "bsid-1", **overrides})
+        return {
+            "access_token": key.sign(payload),
+            "token_type": "Bearer",
+            "expires_in": payload.get("exp", 0) - int(time.time()),
+            "refresh_token": refresh_token,
+            "auth_expires_at": int(time.time()) + 3600,
+            "scope": "",
+        }
+
+    return build

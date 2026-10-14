@@ -22,6 +22,15 @@ class OAuthSDKError(Exception):
     def __repr__(self) -> str:
         return f"{type(self).__name__}(code={self.code!r}, message={self.message!r})"
 
+    def to_dict(self) -> dict[str, str | bool]:
+        """JSON body for the service's own error response; read by ``leap-sso.js``."""
+        return {"error": self.code, "message": self.message, "retryable": self.retryable}
+
+    @property
+    def headers(self) -> dict[str, str]:
+        """Suggested response headers (``Retry-After`` for retryable errors)."""
+        return {"Retry-After": "1"} if self.retryable else {}
+
 
 class Retryable(OAuthSDKError):
     """Temporary upstream condition: keep credentials and retry later (HTTP 503)."""

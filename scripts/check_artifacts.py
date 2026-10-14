@@ -18,6 +18,7 @@ from collections.abc import Iterator
 from pathlib import Path
 
 ALLOWED_HOSTS = {
+    "app.example.com",
     "auth.example.com",
     "evil.example.com",
     "example.com",
