@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.2.0 (2026-10-14)
+## 0.2.0 (2026-10-16)
 
 - `PrincipalDirectory`: picker search, directory user binding and subject validation through
   a service lookup credential; all-or-nothing `canonicalize()` with `PrincipalSelectionError`.
