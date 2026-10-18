@@ -46,6 +46,72 @@ async def current_subject(bearer_token: str) -> str:
 The SDK does not read environment variables and has no default hosts. Load settings in your
 own configuration layer and pass them to `LeapAuthConfig`.
 
+### Verify registered claims for an existing token contract
+
+Use `verify()` or `verify_async()` for the complete access-token contract above. Services
+that already accept a different metadata shape can instead use `verify_claims()` or
+`verify_claims_async()`. Both return `VerifiedTokenClaims(raw_claims=...)`, with original
+claim types and no invented identity fields.
+
+```python
+from leap_oauth_sdk import AccessTokenVerifier, LeapAuthConfig, RegisteredClaimsPolicy
+
+verifier = AccessTokenVerifier(
+    LeapAuthConfig(
+        issuer="https://auth.example.com",
+        audience="example-service",
+        allowed_algorithms=("EdDSA", "RS256"),
+        leeway_seconds=0,
+        jwks_refresh_cooldown_seconds=30,
+    )
+)
+verified = verifier.verify_claims(
+    bearer_token,
+    policy=RegisteredClaimsPolicy.PYJWT_COMPATIBLE,
+)
+claims = verified.raw_claims
+# Apply the service's established version, purpose, status, revocation and authorization
+# rules before using these claims as an authenticated application identity.
+```
+
+`RegisteredClaimsPolicy` has exactly two presets; arbitrary JWT options are not accepted:
+
+| Rule | `STRICT` (default) | `PYJWT_COMPATIBLE` (explicit) |
+| --- | --- | --- |
+| Required registered claims | `exp`, `iat`, `nbf`, `iss`, `sub`, `aud`, `jti` | `exp`, `iat`, `sub`, `aud`; issuer validation also requires `iss` |
+| Audience | One exact string | A string or string array containing the configured audience |
+| Optional `nbf` / `jti` | Required | Validated when present |
+| Key selection | Signing key matching `kid` and explicit `alg` | PyJWT-style signing-key order and exact `kid`; missing JWK `alg` is inferred by PyJWT |
+| Additional size limits | 16 KiB token, 64 KiB JWKS | No additional token/JWKS byte cap |
+| First unknown-key refresh | Respects the interval since the last fetch | Immediate, then limited by `jwks_refresh_cooldown_seconds` |
+
+Both presets always verify the signature, algorithm allowlist, issuer, audience and token
+timestamps. The compatible preset preserves the registered-claim and public-key selection
+behavior used with PyJWT 2.10.1, including numeric-string timestamps and the first matching
+signing key. It never retries a failed signature with another key. Private key material is
+rejected, and keys declaring an encryption or other non-signature use are excluded in both
+presets. No preset disables verification or changes the configured issuer or audience.
+
+**Raw verified claims are not a complete application identity.** Neither raw-claims method
+validates application metadata such as `status`, `ver`, `purpose`, `source` or
+`principal_type`. Missing fields remain missing. The caller must enforce its own existing
+contract. The complete `verify()` and `verify_async()` methods always use `STRICT`, retain
+all metadata checks and return the unchanged `AccessTokenContext` type.
+
+All four methods share one JWKS cache and one in-flight fetch, including mixed sync/async
+callers. Size and key-selection checks apply on every use, so compatible cache entries do
+not bypass strict checks. A failed refresh invalidates previously cached keys and enters
+the configured failure cooldown. Empty, malformed or unusable JWKS produce an
+`InvalidResponse` infrastructure error; transport failures produce `Retryable`. A usable
+JWKS with no matching key produces `ReauthRequired`. Services can map infrastructure
+errors to their established availability response without treating them as invalid tokens.
+HTTP redirects are not followed. Call blocking methods from a worker thread rather than
+an asynchronous event-loop thread.
+
+Structurally broken entries in a mixed JWKS are infrastructure failures, rather than being
+skipped to accept a later key. Key-shape or construction errors that previously escaped as
+unhandled exceptions are reported as `InvalidResponse`.
+
 ## Browser sign-in
 
 One browser client is registered per service and environment. The browser runs authorization
@@ -115,11 +181,17 @@ sign-in counts as a successful logout.
   failed callback shows sign-in instead of looping.
 - `fetch()` adds the bearer token and refreshes 60 seconds before expiry, one refresh at a time.
   A 401 drops local credentials and makes the one automatic attempt; 403 and other statuses
-  are returned to you untouched.
+  are returned to you untouched. A late 401 for an older bearer token keeps any newer session:
+  `GET`, `HEAD` and `OPTIONS` may retry once; other methods return the original readable 401
+  without replaying the request. A safe retry also keeps the newer session if its retry limit
+  is reached. The method of a `Request` object is respected.
 - A duplicated tab copies `sessionStorage` and with it a refresh token the other tab may
   already have spent. The server then answers `refresh_rotation_in_progress`; the module drops
   the copy and signs in again through SSO instead of replaying it. In cookie mode the same
-  answer comes from two replicas refreshing at once, so the request is retried briefly.
+  answer comes from two replicas refreshing at once, so safe methods are retried briefly.
+  `POST`, `PUT`, `PATCH`, `DELETE` and other non-safe methods return the original 503 response.
+  Business writes are never automatically replayed; the application decides whether and how
+  to ask the user to retry.
 - `logout()` sends `scope=browser`, which ends the sign-in for every service in this browser.
   Credentials are cleared only when the backend confirms; the next page load shows sign-in once.
 - Messages default to Chinese; pass `messages` to override.

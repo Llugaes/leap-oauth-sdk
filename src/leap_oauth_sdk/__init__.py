@@ -37,9 +37,14 @@ from .principals import (
     PrincipalSelectionError,
     PrincipalStatus,
 )
-from .tokens import AccessTokenContext, AccessTokenVerifier
+from .tokens import (
+    AccessTokenContext,
+    AccessTokenVerifier,
+    RegisteredClaimsPolicy,
+    VerifiedTokenClaims,
+)
 
-__version__ = "0.2.1"
+__version__ = "0.3.0"
 
 
 def static_dir() -> Path:
@@ -79,8 +84,10 @@ __all__ = [
     "PrincipalSelectionError",
     "PrincipalStatus",
     "ReauthRequired",
+    "RegisteredClaimsPolicy",
     "Retryable",
     "StoredMembers",
+    "VerifiedTokenClaims",
     "__version__",
     "classify_response",
     "static_dir",

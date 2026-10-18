@@ -1,6 +1,6 @@
 [project]
 name = "leap-oauth-sdk"
-version = "0.2.1"
+version = "0.3.0"
 requires-python = ">=3.12"
 description = "Business-side SDK for services that accept Leap Auth OAuth access tokens"
 authors = [{name = "Llugaes", email = "249094896@qq.com"}]

@@ -331,6 +331,8 @@
 
     async function request(url, init, retry) {
       var options = Object.assign({}, init || {});
+      var method = options.method || (url && typeof url === "object" && url.method) || "GET";
+      var replaySafe = /^(GET|HEAD|OPTIONS)$/i.test(String(method));
       var headers = new Headers(options.headers || {});
       var used = null;
       if (bearer) {
@@ -340,19 +342,22 @@
       options.headers = headers;
       var response = await fetcher(url, options);
       if (response.status === 401) {
-        var data = await readJson(response);
+        var data = await readJson(response.clone());
         // A late answer to a request sent with an older token must not drop newer credentials.
         var current = bearer ? loadSession() : null;
-        if (current && current.access_token !== used && retry < 1) return request(url, init, retry + 1);
+        if (current && current.access_token !== used) {
+          if (replaySafe && retry < 1) return request(url, options, retry + 1);
+          return response;
+        }
         return unauthorized(categoryError(401, data.error, messages.sessionExpired));
       }
       // Cookie mode: two replicas refreshed the shared cookie at once. The winner's
       // Set-Cookie is already in the jar, so a short retry succeeds.
-      if (!bearer && response.status === 503 && retry < COOKIE_RETRY_LIMIT) {
+      if (!bearer && replaySafe && response.status === 503 && retry < COOKIE_RETRY_LIMIT) {
         var body = await readJson(response.clone());
         if (body.error === ROTATION_IN_PROGRESS) {
           await sleep(200 * Math.pow(2, retry));
-          return request(url, init, retry + 1);
+          return request(url, options, retry + 1);
         }
       }
       if (response.ok) attempted = false;

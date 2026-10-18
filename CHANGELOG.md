@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.3.0 (2026-10-18)
+
+- Add `verify_claims()` / `verify_claims_async()`, `VerifiedTokenClaims` and the fixed
+  `RegisteredClaimsPolicy.STRICT` / `PYJWT_COMPATIBLE` presets for explicit existing-token
+  contracts. Raw results preserve claim values and missing metadata; callers retain their
+  application status, purpose, version, revocation and authorization rules.
+- Keep complete `verify()` / `verify_async()` on the strict policy with the existing
+  `AccessTokenContext` metadata checks. No new dependencies or browser method signatures.
+- Share a single JWKS fetch between synchronous and asynchronous callers, apply policy
+  limits on cache hits, and support a bounded immediate unknown-key refresh in compatible
+  mode. Failed refreshes invalidate old cached keys.
+- Reject keys intended for encryption or other non-signature use. Empty, malformed and
+  unusable JWKS are infrastructure errors rather than credential failures. Private key
+  material remains rejected under both policies.
+- Preserve strict first-match key rejection and recovery after an oversized JWKS. Compatible
+  mode retains early malformed-payload rejection and rejects structurally broken mixed JWKS;
+  formerly unhandled key-shape/construction errors become `InvalidResponse` infrastructure
+  failures rather than being skipped to accept a later key.
+- `leap-sso.js`: automatically retry only `GET`, `HEAD` and `OPTIONS`. A late 401 keeps newer
+  credentials and returns its readable response for business writes or an exhausted safe
+  retry; cookie rotation conflicts return the original 503 for non-safe methods. Request
+  object methods and the originally sent method are respected, without replaying writes.
+
 ## 0.2.1 (2026-10-18)
 
 - `leap-sso.js`: logout reuses an in-flight bearer refresh before invalidating its epoch,

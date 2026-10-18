@@ -71,7 +71,8 @@ class Backend {
     this.handlers = { [BASE + "/config"]: () => json(200, CONFIG), ...handlers };
     this.fetch = async (url, init = {}) => {
       const call = {
-        path: new URL(url, ORIGIN).pathname,
+        path: new URL(typeof url === "object" && url.url ? url.url : url, ORIGIN).pathname,
+        method: init.method || (typeof url === "object" && url.method) || "GET",
         body: init.body ? JSON.parse(init.body) : undefined,
         authorization: new Headers(init.headers || {}).get("Authorization"),
       };
@@ -523,4 +524,101 @@ test("logout outage after joining refresh keeps the rotated credentials for retr
   assert.equal(backend.count(BASE+"/refresh"),1);
   assert.equal(backend.count(BASE+"/logout"),2);
   assert.equal(browser.store.has("leap.sso.session"),false);
+});
+
+for (const method of ["POST", "PUT", "PATCH", "DELETE"]) {
+  test(`late 401 never replays ${method} or discards newer credentials`, async () => {
+    const backend = new Backend({ "/api/data": () => json(401, { error: "old_token" }) });
+    const { browser } = await signedIn(backend);
+    const original = backend.fetch;
+    backend.fetch = async (url, init) => {
+      const response = await original(url, init);
+      browser.store.set("leap.sso.session", JSON.stringify(session({ access_token: "at-new", refresh_token: "rt-new" })));
+      return response;
+    };
+    const { sso } = start(browser, backend);
+    const response = await sso.fetch("/api/data", { method, body: "{}" });
+    assert.equal(response.status, 401);
+    assert.deepEqual(await response.json(), { error: "old_token" });
+    assert.equal(backend.count("/api/data"), 1);
+    assert.equal(JSON.parse(browser.store.get("leap.sso.session")).refresh_token, "rt-new");
+    assert.equal(browser.assigned.length, 0);
+  });
+
+  test(`cookie rotation conflict never replays ${method}`, async () => {
+    const backend = new Backend({ "/api/data": () => json(503, { error: "refresh_rotation_in_progress" }) });
+    const browser = new Browser();
+    const { sso } = start(browser, backend, { credentialMode: "cookie" });
+    const response = await sso.fetch("/api/data", { method, body: "{}" });
+    assert.equal(response.status, 503);
+    assert.deepEqual(await response.json(), { error: "refresh_rotation_in_progress" });
+    assert.equal(backend.count("/api/data"), 1);
+    assert.equal(browser.assigned.length, 0);
+  });
+}
+
+test("a POST Request object is not mistaken for the default GET retry policy", async () => {
+  const backend = new Backend({ "/api/data": () => json(401, { error: "old_token" }) });
+  const { browser } = await signedIn(backend);
+  const original = backend.fetch;
+  backend.fetch = async (url, init) => {
+    const response = await original(url, init);
+    browser.store.set("leap.sso.session", JSON.stringify(session({ access_token: "at-new" })));
+    return response;
+  };
+  const { sso } = start(browser, backend);
+  const response = await sso.fetch(new Request(ORIGIN + "/api/data", { method: "POST", body: "{}" }));
+  assert.equal(response.status, 401);
+  assert.deepEqual(await response.json(), { error: "old_token" });
+  assert.equal(backend.count("/api/data"), 1);
+  assert.equal(backend.calls[0].method, "POST");
+});
+
+for (const method of ["GET", "HEAD", "OPTIONS"]) {
+  test(`${method} keeps one bounded retry when another request already refreshed`, async () => {
+    const backend = new Backend({ "/api/data": (_call, n) => json(n === 1 ? 401 : 200, {}) });
+    const { browser } = await signedIn(backend);
+    const original = backend.fetch;
+    backend.fetch = async (url, init) => {
+      const response = await original(url, init);
+      browser.store.set("leap.sso.session", JSON.stringify(session({ access_token: "at-new" })));
+      return response;
+    };
+    const { sso } = start(browser, backend);
+    assert.equal((await sso.fetch("/api/data", { method })).status, 200);
+    assert.equal(backend.count("/api/data"), 2);
+    assert.equal(browser.assigned.length, 0);
+  });
+}
+
+test("exhausting a safe retry preserves a still-newer session and readable 401", async () => {
+  const backend = new Backend({ "/api/data": () => json(401, { error: "old_token" }) });
+  const { browser } = await signedIn(backend);
+  const original = backend.fetch;
+  backend.fetch = async (url, init) => {
+    const response = await original(url, init);
+    browser.store.set("leap.sso.session", JSON.stringify(session({ access_token: "at-" + (backend.count("/api/data") + 1) })));
+    return response;
+  };
+  const { sso } = start(browser, backend);
+  const response = await sso.fetch("/api/data");
+  assert.equal(response.status, 401);
+  assert.deepEqual(await response.json(), { error: "old_token" });
+  assert.equal(backend.count("/api/data"), 2);
+  assert.equal(JSON.parse(browser.store.get("leap.sso.session")).access_token, "at-3");
+  assert.equal(browser.assigned.length, 0);
+});
+
+test("a safe retry keeps the sent method even if the caller mutates its init", async () => {
+  let browser;
+  const init = { method: "GET" };
+  const backend = new Backend({ "/api/data": (_call, n) => {
+    init.method = "POST";
+    browser.store.set("leap.sso.session", JSON.stringify(session({ access_token: "at-new" })));
+    return json(n === 1 ? 401 : 200, {});
+  } });
+  const signed = await signedIn(backend);
+  browser = signed.browser;
+  assert.equal((await signed.sso.fetch("/api/data", init)).status, 200);
+  assert.deepEqual(backend.calls.map(call => call.method), ["GET", "GET"]);
 });
