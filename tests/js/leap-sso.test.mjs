@@ -471,3 +471,56 @@ test("a refresh that finishes after logout does not restore credentials", async 
   assert.equal(error.status, 401);
   assert.equal(browser.store.has("leap.sso.session"), false);
 });
+
+test("logout uses the result of an existing refresh before invalidating its epoch", async () => {
+  let releaseRefresh;
+  const backend = new Backend({
+    [BASE + "/refresh"]: () => new Promise(resolve => {
+      releaseRefresh = () => resolve(json(200, session({access_token:"at-rotated",refresh_token:"rt-rotated"})));
+    }),
+    [BASE + "/logout"]: call => {
+      assert.equal(call.authorization,"Bearer at-rotated");
+      return json(200,{});
+    },
+    "/api/data": () => json(200,{}),
+  });
+  const {browser,sso} = await signedIn(backend);
+  browser.store.set("leap.sso.session",JSON.stringify(session({expires_at:nowSeconds()+10})));
+  const pending = sso.fetch("/api/data").catch(error=>error);
+  while(!releaseRefresh) await new Promise(resolve=>setImmediate(resolve));
+  const loggingOut = sso.logout().then(()=>({ok:true}),error=>({error}));
+  releaseRefresh();
+  await pending;
+  assert.deepEqual(await loggingOut,{ok:true});
+  assert.equal(backend.count(BASE+"/refresh"),1);
+  assert.equal(backend.count(BASE+"/logout"),1);
+  assert.equal(browser.store.has("leap.sso.session"),false);
+});
+
+test("logout outage after joining refresh keeps the rotated credentials for retry", async () => {
+  let releaseRefresh, logoutStatus=503;
+  const backend=new Backend({
+    [BASE+"/refresh"]:()=>new Promise(resolve=>{
+      releaseRefresh=()=>resolve(json(200,session({access_token:"at-rotated",refresh_token:"rt-rotated"})));
+    }),
+    [BASE+"/logout"]:call=>{
+      assert.equal(call.authorization,"Bearer at-rotated");
+      return json(logoutStatus,logoutStatus===200?{}:{error:"auth_upstream_unavailable"});
+    },
+    "/api/data":()=>json(200,{}),
+  });
+  const {browser,sso}=await signedIn(backend);
+  browser.store.set("leap.sso.session",JSON.stringify(session({expires_at:nowSeconds()+10})));
+  const pending=sso.fetch("/api/data").catch(error=>error);
+  while(!releaseRefresh) await new Promise(resolve=>setImmediate(resolve));
+  const loggingOut=sso.logout().catch(error=>error);
+  releaseRefresh();
+  await pending;
+  assert.equal((await loggingOut).retryable,true);
+  assert.equal(JSON.parse(browser.store.get("leap.sso.session")).refresh_token,"rt-rotated");
+  logoutStatus=200;
+  await sso.logout();
+  assert.equal(backend.count(BASE+"/refresh"),1);
+  assert.equal(backend.count(BASE+"/logout"),2);
+  assert.equal(browser.store.has("leap.sso.session"),false);
+});

@@ -360,9 +360,18 @@
     }
 
     async function logout(scope) {
-      epoch++;
       leaving = true;
       try {
+        try {
+          var current = bearer ? loadSession() : null;
+          // A spent refresh must first store its replacement so logout can revoke it.
+          // A newer, already-fresh session can log out immediately and discard late work.
+          if (refreshing && current && current.expires_at * 1000 - now() <= REFRESH_MARGIN_MS) {
+            await refreshing;
+          }
+        } finally {
+          epoch++;
+        }
         var token = null;
         if (bearer) {
           if (!loadSession()) throw new LeapSSOError(messages.logoutNeedsLogin, {status: 401});

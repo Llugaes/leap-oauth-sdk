@@ -39,7 +39,7 @@ from .principals import (
 )
 from .tokens import AccessTokenContext, AccessTokenVerifier
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 
 def static_dir() -> Path:

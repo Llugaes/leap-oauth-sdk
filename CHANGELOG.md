@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1 (2026-10-18)
+
+- `leap-sso.js`: logout reuses an in-flight bearer refresh before invalidating its epoch,
+  so the rotated credential can be revoked. A newer fresh session still logs out immediately
+  and discards an older late refresh. No public API or Python verification policy changes.
+
 ## 0.2.0 (2026-10-16)
 
 - `PrincipalDirectory`: picker search, directory user binding and subject validation through
