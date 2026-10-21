@@ -18,6 +18,101 @@ uv add leap-oauth-sdk
 
 Python 3.12 or newer.
 
+## Feishu native v2
+
+The `leap_oauth_sdk.native` module accepts the final native contract. Its `ver` is
+`sakamoto_feishu_access_token.v2`, its header is `typ=at+jwt`, and `client_id`, `purpose`,
+`feishu_tenant` and an exact five-field `person` object are mandatory. Earlier pilot tokens
+with the same `ver` are rejected. Native verification never invokes the Principal v1 verifier.
+
+```python
+from leap_oauth_sdk import LeapAuthConfig
+from leap_oauth_sdk.native import NativeAccessTokenVerifier, grant_matches
+
+native = NativeAccessTokenVerifier(
+    LeapAuthConfig(issuer="https://auth.example.com", audience="example-service"),
+    expected_feishu_tenant="configured-tenant-key",
+    required_purpose="access",
+    allowed_channels=("feishu_oauth", "feishu_bot", "obo"),
+)
+identity = native.verify(bearer_token)  # verify_async is also available
+if grant_matches(stored_person_key, stored_union_fingerprint, identity):
+    ...  # apply this grant's local business permissions
+```
+
+Reuse one verifier per process for JWKS caching and rotation. Static JWKS can instead be
+passed to `verify_native_access_token(token, *, issuer, audience, jwks,
+expected_feishu_tenant, required_purpose, allowed_channels)`. The pure helper defaults to
+EdDSA/RS256; `NativeAccessTokenVerifier` uses `LeapAuthConfig.allowed_algorithms` (EdDSA by
+default). Native leeway is limited to 60 seconds. All signature and registered-claim
+checks remain enabled.
+
+`identity.authorization_key` is the exact `(issuer, person_key)` pair. Scope stored grants
+to the configured issuer before calling `grant_matches`; the helper compares person keys
+without trimming, case folding or normalization. Only the fixed `feishu:user_id:` prefix
+is removed, so a user ID may contain a colon. `identity.display.name` and `.email`, the
+`client_id`, and delegated actors are never grant subjects. A configured union fingerprint
+requires an exact non-null match; this check alone does not establish account-generation
+or employment lifecycle guarantees. `unknown` source status stays unknown; `inactive` is
+rejected.
+
+For browser SSO, select a single local profile explicitly:
+
+```python
+sso = BrowserSSO(
+    config, browser_client,
+    token_profile="feishu_native_v2",
+    expected_feishu_tenant="configured-tenant-key",
+)
+```
+
+`exchange_code`, `refresh` and `check_session` then use the native verifier, including their
+async variants. Browser identity must also match the registered client. Omitting
+`token_profile` keeps the existing Principal v1 behavior. No response triggers a retry using
+the other identity contract. PKCE, state, cookie encoding and `leap-sso.js` are unchanged.
+
+### Native directory and grant selection
+
+Use a backend-held `directory_reader` credential; never send it to the browser:
+
+```python
+from leap_oauth_sdk.native import DirectoryClient
+
+directory = DirectoryClient(
+    config,
+    lookup_token=directory_reader_credential,
+    bound_app_id="central-app-id",
+)
+person = directory.resolve(email="person@example.com")
+person = directory.resolve(union_id="native-union-id")
+person = directory.resolve(open_id="central-app-open-id")  # uses bound_app_id
+grant_person = directory.resolve_for_grant(person_key=person.person_key)
+stored_grant = grant_person.to_dict()  # only person_key and optional union_id
+```
+
+`resolve` accepts exactly one of `person_key`, `user_id`, `email`, `union_id`, `open_id`.
+An Open ID needs `app_id=` unless `bound_app_id` was supplied; conflicting App bindings
+are refused before a request. External-App Open IDs must first be converted by their own
+App. The client never retries a failed locator using a different locator. Email and union
+lookups are checked against the returned fresh profile; Open-ID checking remains on the
+server because that field is not returned.
+
+`search(q, limit=20)` returns `.items` and `.has_more`, and `batch(person_keys)` returns one
+typed result per distinct requested key in request order. Batch requires the final
+`results` contract, checks full coverage and rejects duplicate, extra or mismatched results;
+legacy `items/invalid_keys` are not a fallback. `resolve_for_grant` always performs a fresh
+resolve and rejects inactive users. Search profiles alone cannot create grants, and changing
+an email's owner never rewrites a previously selected key. Sync calls have matching `_async`
+methods. Upstream failures remain retryable; rejected reader credentials are configuration
+errors and do not start user login. No user access token, phone or employee-ID locator is
+supported.
+
+The shared contract file is `testdata/feishu_native_v2_vectors.json` in this repository and
+source distribution, or `leap_oauth_sdk/testdata/feishu_native_v2_vectors.json` in the wheel.
+It fixes a test clock and contains full headers/claims: consumers sign each vector with a
+local test key, apply any `signature=tampered` marker and check its `accept` result. It is
+the same file for signing-side, resource-side and non-Python contract tests.
+
 ## Verify an access token
 
 Create one verifier per process and reuse it, so the JWKS cache is shared by all requests.

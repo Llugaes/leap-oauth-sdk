@@ -1,6 +1,6 @@
 [project]
 name = "leap-oauth-sdk"
-version = "0.3.0"
+version = "0.4.0"
 requires-python = ">=3.12"
 description = "Business-side SDK for services that accept Leap Auth OAuth access tokens"
 authors = [{name = "Llugaes", email = "249094896@qq.com"}]
@@ -48,8 +48,11 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/leap_oauth_sdk"]
 
+[tool.hatch.build.targets.wheel.force-include]
+"testdata/feishu_native_v2_vectors.json" = "leap_oauth_sdk/testdata/feishu_native_v2_vectors.json"
+
 [tool.hatch.build.targets.sdist]
-only-include = ["src/leap_oauth_sdk", "README.md", "LICENSE", "CHANGELOG.md", "pyproject.toml"]
+only-include = ["src/leap_oauth_sdk", "README.md", "LICENSE", "CHANGELOG.md", "pyproject.toml", "testdata/feishu_native_v2_vectors.json"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

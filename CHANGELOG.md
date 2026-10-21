@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.4.0 (2026-10-21)
+
+- Add `leap_oauth_sdk.native` with strict final Feishu v2 access-token verification,
+  issuer-scoped person keys and optional union-ID grant fingerprint checks. Native
+  verification requires an explicit tenant, purpose and channel policy; it never falls
+  back to Principal v1 or the earlier pilot token format.
+- Add a server-side `DirectoryClient` for five native locators, complete batch results,
+  search and fresh grant selection. Open IDs require an explicit or constructor-bound App.
+  Directory profiles omit App/Open-ID and tenant fields.
+- Add explicit `BrowserSSO(token_profile="feishu_native_v2", expected_feishu_tenant=...)`.
+  Existing constructors continue to select Principal v1. Cookie payloads, PKCE, state and
+  `leap-sso.js` remain unchanged.
+- Ship shared native contract vectors in source distributions and wheels. No dependencies
+  were added.
+
 ## 0.3.0 (2026-10-18)
 
 - Add `verify_claims()` / `verify_claims_async()`, `VerifiedTokenClaims` and the fixed

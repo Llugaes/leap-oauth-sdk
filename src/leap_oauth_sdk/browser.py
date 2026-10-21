@@ -20,9 +20,11 @@ import httpx
 
 from .config import BrowserClientConfig, LeapAuthConfig
 from .errors import Forbidden, InvalidResponse, OAuthSDKError, ReauthRequired, Retryable
+from .native import NativeAccessTokenVerifier, NativeIdentity
 from .tokens import AccessTokenContext, AccessTokenVerifier
 
 LogoutScope = Literal["browser", "current"]
+BrowserIdentity = AccessTokenContext | NativeIdentity
 
 AUTHORIZE_PATH = "/api/oauth/authorize"
 TOKEN_PATH = "/api/oauth/token"
@@ -55,7 +57,7 @@ class BrowserSession:
     expires_at: int
     #: Root sign-in expiry, epoch seconds. Refreshing never extends past it.
     auth_expires_at: int | None
-    context: AccessTokenContext
+    context: BrowserIdentity
 
     @property
     def subject_id(self) -> str:
@@ -78,16 +80,39 @@ class BrowserSSO:
         self,
         config: LeapAuthConfig,
         client: BrowserClientConfig,
-        verifier: AccessTokenVerifier | None = None,
+        verifier: AccessTokenVerifier | NativeAccessTokenVerifier | None = None,
         *,
+        token_profile: Literal["principal_v1", "feishu_native_v2"] = "principal_v1",
+        expected_feishu_tenant: str | None = None,
         http_client: httpx.Client | None = None,
         async_http_client: httpx.AsyncClient | None = None,
     ) -> None:
         if verifier is not None and verifier.config.audience != config.audience:
             raise ValueError("verifier audience does not match config audience")
+        if token_profile not in {"principal_v1", "feishu_native_v2"}:
+            raise ValueError("token_profile must be principal_v1 or feishu_native_v2")
+        if token_profile == "feishu_native_v2":
+            if expected_feishu_tenant is None:
+                raise ValueError("native browser SSO requires expected_feishu_tenant")
+            if verifier is not None and not isinstance(verifier, NativeAccessTokenVerifier):
+                raise ValueError("native browser SSO requires a native verifier")
+            if verifier is not None and verifier.expected_feishu_tenant != expected_feishu_tenant:
+                raise ValueError("native verifier tenant does not match browser configuration")
+            verifier = verifier or NativeAccessTokenVerifier(
+                config,
+                expected_feishu_tenant=expected_feishu_tenant,
+                required_purpose="access",
+                allowed_channels=("feishu_oauth",),
+                http_client=http_client,
+                async_http_client=async_http_client,
+            )
+        elif isinstance(verifier, NativeAccessTokenVerifier):
+            raise ValueError("v1 browser SSO cannot use a native verifier")
         self._config = config
         self._client = client
         self._verifier = verifier or AccessTokenVerifier(config)
+        self._token_profile = token_profile
+        self._expected_feishu_tenant = expected_feishu_tenant
         self._http_client = http_client
         self._async_http_client = async_http_client
         self._api_base = (client.api_base_url or config.issuer).strip().rstrip("/")
@@ -101,7 +126,7 @@ class BrowserSSO:
         return self._client
 
     @property
-    def verifier(self) -> AccessTokenVerifier:
+    def verifier(self) -> AccessTokenVerifier | NativeAccessTokenVerifier:
         return self._verifier
 
     @property
@@ -179,23 +204,25 @@ class BrowserSSO:
     # -- online session check and logout -----------------------------------------------
 
     def check_session(
-        self, access_token: str, *, verified: AccessTokenContext | None = None
-    ) -> AccessTokenContext:
+        self, access_token: str, *, verified: BrowserIdentity | None = None
+    ) -> BrowserIdentity:
         """Verify locally, then ask the server whether the sign-in is still live.
 
         Call on every protected request and do not cache the result, so that a logout
         elsewhere takes effect on the next request. Pass ``verified`` when the same token was
         just verified with this service's verifier, to skip verifying it twice.
         """
-        context = _require_browser_binding(verified or self._verifier.verify(access_token))
+        context = _require_browser_binding(
+            self._require_context(verified or self._verifier.verify(access_token))
+        )
         response = self._send_sync(self._bearer_request(SESSION_PATH, access_token, None))
         return self._session_result(response, context)
 
     async def check_session_async(
-        self, access_token: str, *, verified: AccessTokenContext | None = None
-    ) -> AccessTokenContext:
+        self, access_token: str, *, verified: BrowserIdentity | None = None
+    ) -> BrowserIdentity:
         context = _require_browser_binding(
-            verified or await self._verifier.verify_async(access_token)
+            self._require_context(verified or await self._verifier.verify_async(access_token))
         )
         response = await self._send_async(self._bearer_request(SESSION_PATH, access_token, None))
         return self._session_result(response, context)
@@ -289,10 +316,10 @@ class BrowserSSO:
             raise InvalidResponse("auth_response_invalid", "token response is missing tokens")
         return payload
 
-    @staticmethod
     def _session(
-        payload: dict[str, Any], context: AccessTokenContext, expected_subject_id: str | None
+        self, payload: dict[str, Any], context: BrowserIdentity, expected_subject_id: str | None
     ) -> BrowserSession:
+        self._require_context(context)
         _require_browser_binding(context, missing=InvalidResponse)
         if expected_subject_id is not None and context.subject_id != expected_subject_id:
             raise ReauthRequired(
@@ -310,8 +337,8 @@ class BrowserSSO:
         )
 
     def _session_result(
-        self, response: httpx.Response, context: AccessTokenContext
-    ) -> AccessTokenContext:
+        self, response: httpx.Response, context: BrowserIdentity
+    ) -> BrowserIdentity:
         error = classify_response(response, rejected="browser_session_revoked")
         if error is not None:
             raise error
@@ -324,6 +351,29 @@ class BrowserSSO:
         ):
             raise InvalidResponse(
                 "browser_session_mismatch", "session check returned another identity"
+            )
+        return context
+
+    def _require_context(self, context: BrowserIdentity) -> BrowserIdentity:
+        if self._token_profile == "feishu_native_v2":
+            if not isinstance(context, NativeIdentity):
+                raise ReauthRequired(
+                    "browser_identity_contract_mismatch", "native browser identity required"
+                )
+            if (
+                context.issuer != self._config.issuer
+                or context.audience != self._config.audience
+                or context.feishu_tenant != self._expected_feishu_tenant
+                or context.purpose != "access"
+                or context.source.get("channel") != "feishu_oauth"
+                or context.client_id != self._client.client_id
+            ):
+                raise ReauthRequired(
+                    "browser_identity_contract_mismatch", "native browser identity binding invalid"
+                )
+        elif not isinstance(context, AccessTokenContext):
+            raise ReauthRequired(
+                "browser_identity_contract_mismatch", "Principal v1 browser identity required"
             )
         return context
 
@@ -382,8 +432,8 @@ def _logout_result(response: httpx.Response) -> None:
 
 
 def _require_browser_binding(
-    context: AccessTokenContext, *, missing: type[OAuthSDKError] = ReauthRequired
-) -> AccessTokenContext:
+    context: BrowserIdentity, *, missing: type[OAuthSDKError] = ReauthRequired
+) -> BrowserIdentity:
     if context.browser_session_id is None:
         raise missing("browser_session_unbound", "token is not bound to a browser sign-in")
     return context

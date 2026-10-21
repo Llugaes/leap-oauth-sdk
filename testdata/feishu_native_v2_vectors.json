@@ -1,0 +1,2070 @@
+{
+  "schema": "feishu_native_v2_vectors.v1",
+  "now": 1800000000,
+  "issuer": "https://auth.example.com",
+  "audience": "native-service",
+  "expected_feishu_tenant": "tenant-test",
+  "required_purpose": "access",
+  "allowed_channels": [
+    "feishu_oauth",
+    "feishu_bot",
+    "obo"
+  ],
+  "base_header": {
+    "alg": "EdDSA",
+    "kid": "native-vector-key",
+    "typ": "at+jwt"
+  },
+  "base_claims": {
+    "iss": "https://auth.example.com",
+    "aud": "native-service",
+    "sub": "feishu:user_id:Ab:01",
+    "iat": 1800000000,
+    "nbf": 1800000000,
+    "exp": 1800000300,
+    "jti": "native-vector-jti",
+    "ver": "sakamoto_feishu_access_token.v2",
+    "client_id": "native-device:test",
+    "purpose": "access",
+    "source": {
+      "channel": "feishu_oauth"
+    },
+    "feishu_tenant": "tenant-test",
+    "person": {
+      "user_id": "Ab:01",
+      "union_id": "on_test",
+      "status": "active",
+      "name": "Example",
+      "email": "example@example.com"
+    }
+  },
+  "user_id_vectors": [
+    {
+      "value": "Ab:01",
+      "valid": true
+    },
+    {
+      "value": "Ab",
+      "valid": true
+    },
+    {
+      "value": "ab",
+      "valid": true
+    },
+    {
+      "value": "a‍b",
+      "valid": true
+    },
+    {
+      "value": "中间用户",
+      "valid": true
+    },
+    {
+      "value": "",
+      "valid": false
+    },
+    {
+      "value": " u1",
+      "valid": false
+    },
+    {
+      "value": "u1 ",
+      "valid": false
+    },
+    {
+      "value": "u\u0000x",
+      "valid": false
+    },
+    {
+      "value": "u\nx",
+      "valid": false
+    },
+    {
+      "value": " u",
+      "valid": false
+    }
+  ],
+  "token_vectors": [
+    {
+      "id": "valid_access",
+      "accept": true,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "native-device:test",
+        "purpose": "access",
+        "source": {
+          "channel": "feishu_oauth"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        }
+      }
+    },
+    {
+      "id": "valid_unknown_status",
+      "accept": true,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "native-device:test",
+        "purpose": "access",
+        "source": {
+          "channel": "feishu_oauth"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "unknown",
+          "name": "Example",
+          "email": "example@example.com"
+        }
+      }
+    },
+    {
+      "id": "valid_null_union",
+      "accept": true,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "native-device:test",
+        "purpose": "access",
+        "source": {
+          "channel": "feishu_oauth"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": null,
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        }
+      }
+    },
+    {
+      "id": "valid_nullable_display",
+      "accept": true,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "native-device:test",
+        "purpose": "access",
+        "source": {
+          "channel": "feishu_oauth"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": null,
+          "email": null
+        }
+      }
+    },
+    {
+      "id": "valid_bot",
+      "accept": true,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "bot-client",
+        "purpose": "access",
+        "source": {
+          "channel": "feishu_bot"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        },
+        "act": {
+          "type": "trusted_entry",
+          "sub": "bot-client",
+          "auth": "issue_token"
+        }
+      }
+    },
+    {
+      "id": "valid_obo",
+      "accept": true,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "broker-client",
+        "purpose": "access",
+        "source": {
+          "channel": "obo"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        },
+        "act": {
+          "type": "obo",
+          "sub": "broker-client",
+          "parent_aud": "source-service",
+          "parent_jti": "source-jti",
+          "act": {
+            "type": "trusted_entry",
+            "sub": "bot-client",
+            "auth": "hmac"
+          }
+        }
+      }
+    },
+    {
+      "id": "valid_probe_endpoint",
+      "accept": true,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "native-device:test",
+        "purpose": "entitlement_probe",
+        "source": {
+          "channel": "feishu_oauth"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        }
+      },
+      "required_purpose": "entitlement_probe"
+    },
+    {
+      "id": "pilot_typ_jwt",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "JWT"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "native-device:test",
+        "purpose": "access",
+        "source": {
+          "channel": "feishu_oauth"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        }
+      }
+    },
+    {
+      "id": "missing_typ",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "native-device:test",
+        "purpose": "access",
+        "source": {
+          "channel": "feishu_oauth"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        }
+      }
+    },
+    {
+      "id": "algorithm_not_allowed",
+      "accept": false,
+      "header": {
+        "alg": "HS256",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "native-device:test",
+        "purpose": "access",
+        "source": {
+          "channel": "feishu_oauth"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        }
+      }
+    },
+    {
+      "id": "signature_invalid",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "native-device:test",
+        "purpose": "access",
+        "source": {
+          "channel": "feishu_oauth"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        }
+      },
+      "signature": "tampered"
+    },
+    {
+      "id": "issuer_mismatch",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://evil.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "native-device:test",
+        "purpose": "access",
+        "source": {
+          "channel": "feishu_oauth"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        }
+      }
+    },
+    {
+      "id": "audience_mismatch",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "other-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "native-device:test",
+        "purpose": "access",
+        "source": {
+          "channel": "feishu_oauth"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        }
+      }
+    },
+    {
+      "id": "audience_array",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": [
+          "native-service"
+        ],
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "native-device:test",
+        "purpose": "access",
+        "source": {
+          "channel": "feishu_oauth"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        }
+      }
+    },
+    {
+      "id": "expired",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": 1799999880,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "native-device:test",
+        "purpose": "access",
+        "source": {
+          "channel": "feishu_oauth"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        }
+      }
+    },
+    {
+      "id": "not_yet_valid",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000120,
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "native-device:test",
+        "purpose": "access",
+        "source": {
+          "channel": "feishu_oauth"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        }
+      }
+    },
+    {
+      "id": "issued_in_future",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000120,
+        "nbf": 1800000000,
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "native-device:test",
+        "purpose": "access",
+        "source": {
+          "channel": "feishu_oauth"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        }
+      }
+    },
+    {
+      "id": "missing_exp",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "native-device:test",
+        "purpose": "access",
+        "source": {
+          "channel": "feishu_oauth"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        }
+      }
+    },
+    {
+      "id": "missing_nbf",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "native-device:test",
+        "purpose": "access",
+        "source": {
+          "channel": "feishu_oauth"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        }
+      }
+    },
+    {
+      "id": "missing_iat",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "nbf": 1800000000,
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "native-device:test",
+        "purpose": "access",
+        "source": {
+          "channel": "feishu_oauth"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        }
+      }
+    },
+    {
+      "id": "missing_jti",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": 1800000300,
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "native-device:test",
+        "purpose": "access",
+        "source": {
+          "channel": "feishu_oauth"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        }
+      }
+    },
+    {
+      "id": "non_integer_exp",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": "1800000000",
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "native-device:test",
+        "purpose": "access",
+        "source": {
+          "channel": "feishu_oauth"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        }
+      }
+    },
+    {
+      "id": "non_integer_nbf",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": "1800000000",
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "native-device:test",
+        "purpose": "access",
+        "source": {
+          "channel": "feishu_oauth"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        }
+      }
+    },
+    {
+      "id": "non_integer_iat",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": "1800000000",
+        "nbf": 1800000000,
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "native-device:test",
+        "purpose": "access",
+        "source": {
+          "channel": "feishu_oauth"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        }
+      }
+    },
+    {
+      "id": "version_v1",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_access_token.v1",
+        "client_id": "native-device:test",
+        "purpose": "access",
+        "source": {
+          "channel": "feishu_oauth"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        }
+      }
+    },
+    {
+      "id": "subject_v1",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "usr_legacy",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "native-device:test",
+        "purpose": "access",
+        "source": {
+          "channel": "feishu_oauth"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        }
+      }
+    },
+    {
+      "id": "subject_old_union_key",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:cli_test:on_test",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "native-device:test",
+        "purpose": "access",
+        "source": {
+          "channel": "feishu_oauth"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        }
+      }
+    },
+    {
+      "id": "subject_whitespace",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id: Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "native-device:test",
+        "purpose": "access",
+        "source": {
+          "channel": "feishu_oauth"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        }
+      }
+    },
+    {
+      "id": "person_user_id_mismatch",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "native-device:test",
+        "purpose": "access",
+        "source": {
+          "channel": "feishu_oauth"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        }
+      }
+    },
+    {
+      "id": "pilot_missing_client_id",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "purpose": "access",
+        "source": {
+          "channel": "feishu_oauth"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        }
+      }
+    },
+    {
+      "id": "empty_client_id",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "",
+        "purpose": "access",
+        "source": {
+          "channel": "feishu_oauth"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        }
+      }
+    },
+    {
+      "id": "pilot_missing_purpose",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "native-device:test",
+        "source": {
+          "channel": "feishu_oauth"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        }
+      }
+    },
+    {
+      "id": "probe_on_access_endpoint",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "native-device:test",
+        "purpose": "entitlement_probe",
+        "source": {
+          "channel": "feishu_oauth"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        }
+      }
+    },
+    {
+      "id": "source_channel_invalid",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "native-device:test",
+        "purpose": "access",
+        "source": {
+          "channel": "device"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        }
+      }
+    },
+    {
+      "id": "actor_malformed",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "native-device:test",
+        "purpose": "access",
+        "source": {
+          "channel": "feishu_oauth"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        },
+        "act": []
+      }
+    },
+    {
+      "id": "bot_actor_missing",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "native-device:test",
+        "purpose": "access",
+        "source": {
+          "channel": "feishu_bot"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        }
+      }
+    },
+    {
+      "id": "bot_actor_auth_missing",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "native-device:test",
+        "purpose": "access",
+        "source": {
+          "channel": "feishu_bot"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        },
+        "act": {
+          "type": "trusted_entry",
+          "sub": "bot-client"
+        }
+      }
+    },
+    {
+      "id": "obo_actor_missing",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "native-device:test",
+        "purpose": "access",
+        "source": {
+          "channel": "obo"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        }
+      }
+    },
+    {
+      "id": "pilot_missing_tenant",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "native-device:test",
+        "purpose": "access",
+        "source": {
+          "channel": "feishu_oauth"
+        },
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        }
+      }
+    },
+    {
+      "id": "tenant_mismatch",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "native-device:test",
+        "purpose": "access",
+        "source": {
+          "channel": "feishu_oauth"
+        },
+        "feishu_tenant": "other-tenant",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        }
+      }
+    },
+    {
+      "id": "inactive_person",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "native-device:test",
+        "purpose": "access",
+        "source": {
+          "channel": "feishu_oauth"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "inactive",
+          "name": "Example",
+          "email": "example@example.com"
+        }
+      }
+    },
+    {
+      "id": "invalid_person_status",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "native-device:test",
+        "purpose": "access",
+        "source": {
+          "channel": "feishu_oauth"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "enabled",
+          "name": "Example",
+          "email": "example@example.com"
+        }
+      }
+    },
+    {
+      "id": "pilot_person_extra_field",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "native-device:test",
+        "purpose": "access",
+        "source": {
+          "channel": "feishu_oauth"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com",
+          "app_id": "cli_test"
+        }
+      }
+    },
+    {
+      "id": "person_field_missing",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "native-device:test",
+        "purpose": "access",
+        "source": {
+          "channel": "feishu_oauth"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example"
+        }
+      }
+    },
+    {
+      "id": "principal_type_present",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "native-device:test",
+        "purpose": "access",
+        "source": {
+          "channel": "feishu_oauth"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        },
+        "principal_type": "human"
+      }
+    },
+    {
+      "id": "v1_identity_present",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "native-device:test",
+        "purpose": "access",
+        "source": {
+          "channel": "feishu_oauth"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        },
+        "identity": {
+          "subject_id": "usr_legacy"
+        }
+      }
+    },
+    {
+      "id": "pilot_real_shape",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "JWT"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "source": {
+          "channel": "feishu_oauth"
+        },
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com",
+          "person_key": "feishu:user_id:Ab:01",
+          "app_id": "cli_test",
+          "open_id": "ou_test",
+          "tenant_key": null,
+          "avatar_url": null,
+          "department": null,
+          "department_ids": [],
+          "departments": []
+        }
+      }
+    },
+    {
+      "id": "person_status_object",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "native-device:test",
+        "purpose": "access",
+        "source": {
+          "channel": "feishu_oauth"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": {},
+          "name": "Example",
+          "email": "example@example.com"
+        }
+      }
+    },
+    {
+      "id": "source_channel_array",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "native-device:test",
+        "purpose": "access",
+        "source": {
+          "channel": []
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        }
+      }
+    },
+    {
+      "id": "client_id_non_string",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": 17,
+        "purpose": "access",
+        "source": {
+          "channel": "feishu_oauth"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        }
+      }
+    },
+    {
+      "id": "jti_empty",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": 1800000300,
+        "jti": "",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "native-device:test",
+        "purpose": "access",
+        "source": {
+          "channel": "feishu_oauth"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        }
+      }
+    },
+    {
+      "id": "iat_boolean",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": true,
+        "nbf": 1800000000,
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "native-device:test",
+        "purpose": "access",
+        "source": {
+          "channel": "feishu_oauth"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        }
+      }
+    },
+    {
+      "id": "exp_float",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": 1800000300.0,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "native-device:test",
+        "purpose": "access",
+        "source": {
+          "channel": "feishu_oauth"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        }
+      }
+    },
+    {
+      "id": "oauth_ttl_over_900",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": 1800000901,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "native-device:test",
+        "purpose": "access",
+        "source": {
+          "channel": "feishu_oauth"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        }
+      }
+    },
+    {
+      "id": "probe_ttl_over_300",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": 1800000301,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "native-device:test",
+        "purpose": "entitlement_probe",
+        "source": {
+          "channel": "feishu_oauth"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        }
+      },
+      "required_purpose": "entitlement_probe"
+    },
+    {
+      "id": "actor_null",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "native-device:test",
+        "purpose": "access",
+        "source": {
+          "channel": "feishu_oauth"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        },
+        "act": null
+      }
+    },
+    {
+      "id": "actor_nested_null",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "native-device:test",
+        "purpose": "access",
+        "source": {
+          "channel": "obo"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        },
+        "act": {
+          "type": "obo",
+          "sub": "broker",
+          "parent_aud": "source",
+          "parent_jti": "old-jti",
+          "act": null
+        }
+      }
+    },
+    {
+      "id": "bot_client_actor_mismatch",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "different-client",
+        "purpose": "access",
+        "source": {
+          "channel": "feishu_bot"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        },
+        "act": {
+          "type": "trusted_entry",
+          "sub": "bot-client",
+          "auth": "issue_token"
+        }
+      }
+    },
+    {
+      "id": "obo_client_actor_mismatch",
+      "accept": false,
+      "header": {
+        "alg": "EdDSA",
+        "kid": "native-vector-key",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://auth.example.com",
+        "aud": "native-service",
+        "sub": "feishu:user_id:Ab:01",
+        "iat": 1800000000,
+        "nbf": 1800000000,
+        "exp": 1800000300,
+        "jti": "native-vector-jti",
+        "ver": "sakamoto_feishu_access_token.v2",
+        "client_id": "different-client",
+        "purpose": "access",
+        "source": {
+          "channel": "obo"
+        },
+        "feishu_tenant": "tenant-test",
+        "person": {
+          "user_id": "Ab:01",
+          "union_id": "on_test",
+          "status": "active",
+          "name": "Example",
+          "email": "example@example.com"
+        },
+        "act": {
+          "type": "obo",
+          "sub": "broker-client",
+          "parent_aud": "source-service",
+          "parent_jti": "source-jti",
+          "act": {
+            "type": "trusted_entry",
+            "sub": "bot-client",
+            "auth": "hmac"
+          }
+        }
+      }
+    }
+  ],
+  "grant_vectors": [
+    {
+      "id": "exact_subject",
+      "subject_ref": "feishu:user_id:Ab:01",
+      "bound_union_id": null,
+      "identity_user_id": "Ab:01",
+      "identity_union_id": "on_test",
+      "match": true
+    },
+    {
+      "id": "case_mismatch",
+      "subject_ref": "feishu:user_id:ab:01",
+      "bound_union_id": null,
+      "identity_user_id": "Ab:01",
+      "identity_union_id": "on_test",
+      "match": false
+    },
+    {
+      "id": "fingerprint_missing",
+      "subject_ref": "feishu:user_id:Ab:01",
+      "bound_union_id": "on_test",
+      "identity_user_id": "Ab:01",
+      "identity_union_id": null,
+      "match": false
+    },
+    {
+      "id": "fingerprint_changed",
+      "subject_ref": "feishu:user_id:Ab:01",
+      "bound_union_id": "on_old",
+      "identity_user_id": "Ab:01",
+      "identity_union_id": "on_test",
+      "match": false
+    },
+    {
+      "id": "actor_is_not_subject",
+      "subject_ref": "bot-client",
+      "bound_union_id": null,
+      "identity_user_id": "Ab:01",
+      "identity_union_id": "on_test",
+      "match": false
+    }
+  ]
+}

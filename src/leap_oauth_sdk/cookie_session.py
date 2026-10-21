@@ -21,9 +21,8 @@ from typing import Any, cast
 
 from cryptography.fernet import Fernet, InvalidToken, MultiFernet
 
-from .browser import BrowserSession, BrowserSSO, LogoutScope
+from .browser import BrowserIdentity, BrowserSession, BrowserSSO, LogoutScope
 from .errors import InvalidResponse, ReauthRequired
-from .tokens import AccessTokenContext
 
 DEFAULT_COOKIE_CONTEXT = "leap-oauth-sdk.cookie.v1"
 #: Browsers drop cookies above ~4 KiB including name and attributes.
@@ -107,7 +106,7 @@ class CookieResolution:
     """Result of one protected request. When ``cookie`` is not ``None`` the session was
     refreshed or migrated: set it on the response with :meth:`CookieSessionManager.max_age`."""
 
-    context: AccessTokenContext
+    context: BrowserIdentity
     session: CookieSession
     cookie: str | None = field(default=None, repr=False)
 
@@ -247,7 +246,7 @@ class CookieSessionManager:
         )
 
     def _resolution(
-        self, context: AccessTokenContext, session: CookieSession, rewrite: bool
+        self, context: BrowserIdentity, session: CookieSession, rewrite: bool
     ) -> CookieResolution:
         if context.subject_id != session.subject_id:
             raise ReauthRequired("browser_session_subject_changed", "cookie subject mismatch")
