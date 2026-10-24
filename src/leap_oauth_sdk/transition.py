@@ -139,6 +139,7 @@ class TransitionAccessTokenVerifier:
         identity_map: MigrationIdentityMap,
         required_purpose: str,
         allowed_channels: Iterable[str],
+        legacy_allowed_channels: Iterable[str] | None = None,
         jwks: Mapping[str, Any] | None = None,
         http_client: httpx.Client | None = None,
         async_http_client: httpx.AsyncClient | None = None,
@@ -149,6 +150,14 @@ class TransitionAccessTokenVerifier:
         self.identity_map = identity_map
         self._purpose = required_purpose
         self._channels = frozenset(allowed_channels)
+        if isinstance(legacy_allowed_channels, (str, bytes)):
+            raise ValueError("legacy channel policy must be a collection of channel names")
+        legacy_channels = tuple(
+            self._channels if legacy_allowed_channels is None else legacy_allowed_channels
+        )
+        if not legacy_channels or any(not _exact_text(value) for value in legacy_channels):
+            raise ValueError("legacy channel policy must contain exact nonempty channel names")
+        self._legacy_channels = frozenset(legacy_channels)
         self._legacy = AccessTokenVerifier(
             config, jwks=jwks, http_client=http_client, async_http_client=async_http_client
         )
@@ -177,6 +186,10 @@ class TransitionAccessTokenVerifier:
     @property
     def allowed_channels(self) -> frozenset[str]:
         return self._channels
+
+    @property
+    def legacy_allowed_channels(self) -> frozenset[str]:
+        return self._legacy_channels
 
     @staticmethod
     def _native_profile(token: object) -> bool:
@@ -240,7 +253,7 @@ class TransitionAccessTokenVerifier:
         if (
             claims.get("purpose", "access") != self._purpose
             or not isinstance(channel, str)
-            or channel not in self._channels
+            or channel not in self._legacy_channels
         ):
             raise Forbidden(
                 "migration_token_policy_rejected", "token purpose or channel is not allowed"

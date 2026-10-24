@@ -103,6 +103,7 @@ class BrowserSSO:
                 or expected_feishu_tenant != verifier.expected_feishu_tenant
                 or verifier.required_purpose != "access"
                 or verifier.allowed_channels != frozenset({"feishu_oauth"})
+                or verifier.legacy_allowed_channels != frozenset({"feishu_oauth"})
             ):
                 raise ValueError("transition browser verifier binding or policy mismatch")
         elif token_profile == "feishu_native_v2":

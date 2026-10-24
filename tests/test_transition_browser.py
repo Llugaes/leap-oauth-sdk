@@ -30,6 +30,20 @@ def browser(config, client, key, handler):
     )
 
 
+def test_browser_rejects_migration_verifier_accepting_nonbrowser_legacy_channels(
+    config, browser_client, key
+):
+    check = verifier(config, key, legacy_allowed_channels=("feishu_oauth", "device"))
+    with pytest.raises(ValueError, match="policy mismatch"):
+        BrowserSSO(
+            config,
+            browser_client,
+            check,
+            token_profile="transition",
+            expected_feishu_tenant="tenant-1",
+        )
+
+
 def token_response(key, payload, native=False):
     return {
         "access_token": key.sign(payload, typ="at+jwt" if native else "JWT"),

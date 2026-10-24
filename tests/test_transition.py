@@ -77,6 +77,34 @@ def test_both_verified_profiles_have_one_key_without_fabricating_native_claims(c
     assert dict(new.raw_claims) == new_claims
 
 
+@pytest.mark.parametrize("channel", ["device", "bot"])
+def test_legacy_channels_are_explicit_and_never_expand_native_policy(config, key, claims, channel):
+    old = claims(source={"channel": channel})
+    with pytest.raises(OAuthSDKError):
+        verifier(config, key).verify(key.sign(old))
+    check = verifier(config, key, legacy_allowed_channels=("feishu_oauth", "device", "bot"))
+    result = check.verify(key.sign(old))
+    assert result.subject_id == PERSON and dict(result.raw_claims) == old
+    assert check.allowed_channels == frozenset({"feishu_oauth"})
+    native = native_claims(claims)
+    native["source"] = {"channel": channel}
+    with pytest.raises(OAuthSDKError):
+        check.verify(key.sign(native, typ="at+jwt"))
+
+
+@pytest.mark.asyncio
+async def test_async_transition_accepts_explicit_original_device_channel(config, key, claims):
+    check = verifier(config, key, legacy_allowed_channels=("device",))
+    result = await check.verify_async(key.sign(claims(source={"channel": "device"})))
+    assert result.profile == "principal_v1" and result.subject_id == PERSON
+
+
+@pytest.mark.parametrize("channels", [(), ("",), ("device", None), (" device",), "device"])
+def test_legacy_channel_policy_must_be_explicit_exact_nonempty(config, key, channels):
+    with pytest.raises(ValueError):
+        verifier(config, key, legacy_allowed_channels=channels)
+
+
 def test_single_storage_format_uses_exact_reverse_map_and_never_falls_back():
     ids = mapping()
     assert ids.storage_subject(PERSON, "principal_v1") == "usr_1"

@@ -20,7 +20,14 @@ Python 3.12 or newer.
 
 ## Feishu native v2
 
-### Controlled migration support (0.5.0.dev1, unreleased)
+### Controlled migration support (0.5.0.dev2)
+
+`allowed_channels` controls the strict native profile. For original v1 channels such as
+`device` or `bot`, pass a separate explicit `legacy_allowed_channels=("device", "bot", "feishu_oauth")`
+matching that service's original policy. It defaults to `allowed_channels`; it never broadens
+the native channel policy. Browser transition SSO requires both sets to contain only
+`feishu_oauth`, so a general MCP verifier cannot be reused as a browser verifier.
+
 
 `leap_oauth_sdk.transition` provides an explicit temporary receiver for deployments that
 must keep valid v1 sessions working while moving to native keys. It is not enabled by
@@ -66,7 +73,7 @@ proof for the supplied mapping.
 
 For browser sessions, explicitly pass this verifier to
 `BrowserSSO(..., token_profile="transition", expected_feishu_tenant=...)`, using only
-`required_purpose="access"` and `allowed_channels=("feishu_oauth",)`. Existing encrypted
+`required_purpose="access"` and both native/legacy channels restricted to `feishu_oauth`. Existing encrypted
 cookies retain their root/refresh credentials and extra fields; after successful identity
 verification the cookie subject becomes the canonical person key. Native browser client
 binding and online logout/revocation checks still apply.

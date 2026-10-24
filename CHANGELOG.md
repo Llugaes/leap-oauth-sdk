@@ -1,6 +1,13 @@
 # Changelog
 
-## 0.5.0.dev1 (unreleased)
+## 0.5.0.dev2 (2026-10-24)
+
+- Separate explicit legacy channel policy from the strict native channel policy during
+  migration. Original v1 `device` and `bot` tokens can be accepted when named in
+  `legacy_allowed_channels`; they never expand the native verifier's allowed channels.
+  Browser transition verification continues to require only `feishu_oauth` for both profiles.
+
+## 0.5.0.dev1 (2026-10-24)
 
 - Add explicit, removable `transition` support for a controlled v1-to-native migration.
   Both token profiles are fully verified without fallback, and trusted issuer/tenant-scoped
