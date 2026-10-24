@@ -22,7 +22,7 @@ from typing import Any, cast
 from cryptography.fernet import Fernet, InvalidToken, MultiFernet
 
 from .browser import BrowserIdentity, BrowserSession, BrowserSSO, LogoutScope
-from .errors import InvalidResponse, ReauthRequired
+from .errors import InvalidResponse, OAuthSDKError, ReauthRequired
 
 DEFAULT_COOKIE_CONTEXT = "leap-oauth-sdk.cookie.v1"
 #: Browsers drop cookies above ~4 KiB including name and attributes.
@@ -248,8 +248,17 @@ class CookieSessionManager:
     def _resolution(
         self, context: BrowserIdentity, session: CookieSession, rewrite: bool
     ) -> CookieResolution:
-        if context.subject_id != session.subject_id:
+        try:
+            expected = self._sso.canonical_subject(session.subject_id)
+        except (OAuthSDKError, ValueError) as exc:
+            raise ReauthRequired(
+                "browser_session_subject_changed", "cookie subject mismatch"
+            ) from exc
+        if context.subject_id != expected:
             raise ReauthRequired("browser_session_subject_changed", "cookie subject mismatch")
+        if session.subject_id != context.subject_id:
+            session = replace(session, subject_id=context.subject_id)
+            rewrite = True
         return CookieResolution(context, session, self.encode(session) if rewrite else None)
 
     def _refresh_sync(self, session: CookieSession) -> BrowserSession:

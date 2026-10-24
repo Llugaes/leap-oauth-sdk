@@ -43,8 +43,9 @@ from .tokens import (
     RegisteredClaimsPolicy,
     VerifiedTokenClaims,
 )
+from .transition import MigrationIdentityMap, TransitionAccessTokenVerifier, TransitionIdentity
 
-__version__ = "0.4.0"
+__version__ = "0.5.0.dev1"
 
 
 def static_dir() -> Path:
@@ -77,6 +78,7 @@ __all__ = [
     "MemberService",
     "MemberSnapshot",
     "MemberStore",
+    "MigrationIdentityMap",
     "OAuthSDKError",
     "PickerResult",
     "PrincipalCandidate",
@@ -87,6 +89,8 @@ __all__ = [
     "RegisteredClaimsPolicy",
     "Retryable",
     "StoredMembers",
+    "TransitionAccessTokenVerifier",
+    "TransitionIdentity",
     "VerifiedTokenClaims",
     "__version__",
     "classify_response",

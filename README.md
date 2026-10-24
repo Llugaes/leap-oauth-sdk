@@ -20,6 +20,71 @@ Python 3.12 or newer.
 
 ## Feishu native v2
 
+### Controlled migration support (0.5.0.dev1, unreleased)
+
+`leap_oauth_sdk.transition` provides an explicit temporary receiver for deployments that
+must keep valid v1 sessions working while moving to native keys. It is not enabled by
+default and does not change either existing token verifier.
+
+```python
+from leap_oauth_sdk import LeapAuthConfig
+from leap_oauth_sdk.transition import MigrationIdentityMap, TransitionAccessTokenVerifier
+
+# Trusted server material, validated before activation. Never accept a map from a request.
+identity_map = MigrationIdentityMap(
+    issuer="https://auth.example.com",
+    feishu_tenant="configured-tenant-key",
+    revision="verified-mapping-revision",
+    legacy_to_person={"usr_existing": "feishu:user_id:Exact-User"},
+)
+verifier = TransitionAccessTokenVerifier(
+    LeapAuthConfig(issuer=identity_map.issuer, audience="example-service"),
+    identity_map=identity_map,
+    required_purpose="access",
+    allowed_channels=("feishu_oauth",),
+)
+identity = verifier.verify(bearer_token)  # verify_async also supported
+# Read the storage format + mapping revision and grant in the same consistent transaction.
+assert current_mapping_revision == identity.mapping_revision
+stored_subject = identity_map.storage_subject(identity.person_key, current_storage_contract)
+```
+
+Both legal profiles identify the same `(issuer, person_key)`. `wire_subject`, `profile` and
+the signed `raw_claims` remain available for session checks and audit. A v1 result does not
+fabricate a native `person`, tenant claim or client ID. Only verified human v1 identities
+in the exact frozen mapping are accepted. Unknown aliases, duplicate mappings, invalid
+profiles and failed signatures are rejected; no email or display-name fallback exists.
+The selector decodes only a header of at most 4 KiB; native tokens retain the shared
+16 KiB strict envelope bound before PyJWT parses their payload. Legacy payloads retain
+the existing compatible registered-claims policy, including valid larger claim sets.
+
+`storage_subject(..., "principal_v1")` performs one exact reverse lookup for pre-existing
+rows; `"feishu_native_v2"` uses the person key directly. Never query both formats or select
+a second key after a denied lookup. The business owns transaction/epoch consistency, all
+writers, grants and revocation. The SDK does not activate a migration or provide a readiness
+proof for the supplied mapping.
+
+For browser sessions, explicitly pass this verifier to
+`BrowserSSO(..., token_profile="transition", expected_feishu_tenant=...)`, using only
+`required_purpose="access"` and `allowed_channels=("feishu_oauth",)`. Existing encrypted
+cookies retain their root/refresh credentials and extra fields; after successful identity
+verification the cookie subject becomes the canonical person key. Native browser client
+binding and online logout/revocation checks still apply.
+Transition browser mode requires `browser_client_id` on v1 browser tickets. Before
+activation, original browser tickets must have this binding or refresh normally through
+the original v1 path. An unbound ticket cannot be treated as belonging to this client.
+
+Remove the transition receiver and mapping only after an authoritative census proves all
+in-scope refresh families, clients and storage have migrated and old access tokens can no
+longer be valid. A fixed waiting period alone does not prove that condition. Runtime mapping
+or storage-state failures must not silently fall back to a previous identity format.
+The final receiver is strict native. Once cookie subjects have become person keys,
+rolling the receiver back to the old v1-only SDK would require users to sign in again.
+An issuance rollback must keep the transition receiver until its own exit conditions
+are satisfied. Cookies and encryption contexts must not be shared between tenants.
+
+### Strict native receiver
+
 The `leap_oauth_sdk.native` module accepts the final native contract. Its `ver` is
 `sakamoto_feishu_access_token.v2`, its header is `typ=at+jwt`, and `client_id`, `purpose`,
 `feishu_tenant` and an exact five-field `person` object are mandatory. Earlier pilot tokens

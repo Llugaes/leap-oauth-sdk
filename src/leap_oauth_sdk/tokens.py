@@ -22,10 +22,10 @@ from typing import Any, cast
 import httpx
 import jwt
 
-from .config import LeapAuthConfig
+from .config import STRICT_ACCESS_TOKEN_MAX_BYTES, LeapAuthConfig
 from .errors import Forbidden, InvalidResponse, OAuthSDKError, ReauthRequired, Retryable
 
-_MAX_TOKEN_BYTES = 16 * 1024
+_MAX_TOKEN_BYTES = STRICT_ACCESS_TOKEN_MAX_BYTES
 _MAX_JWKS_BYTES = 64 * 1024
 _PRIVATE_JWK_FIELDS = frozenset({"d", "p", "q", "dp", "dq", "qi", "oth", "k"})
 _REQUIRED_REGISTERED_CLAIMS = ["exp", "iat", "nbf", "iss", "sub", "aud", "jti"]

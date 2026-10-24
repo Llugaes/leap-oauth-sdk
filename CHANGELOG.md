@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.5.0.dev1 (unreleased)
+
+- Add explicit, removable `transition` support for a controlled v1-to-native migration.
+  Both token profiles are fully verified without fallback, and trusted issuer/tenant-scoped
+  bijective mappings produce one canonical authorization key. The business selects exactly
+  one storage-key format inside its own grant transaction; no grants are duplicated or merged.
+- Preserve signed legacy claims and the wire subject separately from the canonical key.
+  Browser refresh and online checks can retain an existing session across the subject change;
+  existing encrypted cookies are rewritten only after verifying the same mapped person.
+- Existing default v1 and strict native verifiers remain unchanged. The transition verifier
+  requires an explicit trusted mapping, tenant, purpose and channel policy; no directory
+  lookup, identity lifecycle, grant synchronization or migration activation is implicit.
+
 ## 0.4.0 (2026-10-21)
 
 - Add `leap_oauth_sdk.native` with strict final Feishu v2 access-token verification,

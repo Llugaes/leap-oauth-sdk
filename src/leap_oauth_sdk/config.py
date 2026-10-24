@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from urllib.parse import urlsplit
 
+STRICT_ACCESS_TOKEN_MAX_BYTES = 16 * 1024
+
 _LOOPBACK_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
 
 #: Protocol identifier carried in the ``ver`` claim of every Leap Auth access token.

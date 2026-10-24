@@ -22,9 +22,10 @@ from .config import BrowserClientConfig, LeapAuthConfig
 from .errors import Forbidden, InvalidResponse, OAuthSDKError, ReauthRequired, Retryable
 from .native import NativeAccessTokenVerifier, NativeIdentity
 from .tokens import AccessTokenContext, AccessTokenVerifier
+from .transition import TransitionAccessTokenVerifier, TransitionIdentity
 
 LogoutScope = Literal["browser", "current"]
-BrowserIdentity = AccessTokenContext | NativeIdentity
+BrowserIdentity = AccessTokenContext | NativeIdentity | TransitionIdentity
 
 AUTHORIZE_PATH = "/api/oauth/authorize"
 TOKEN_PATH = "/api/oauth/token"
@@ -80,18 +81,31 @@ class BrowserSSO:
         self,
         config: LeapAuthConfig,
         client: BrowserClientConfig,
-        verifier: AccessTokenVerifier | NativeAccessTokenVerifier | None = None,
+        verifier: AccessTokenVerifier
+        | NativeAccessTokenVerifier
+        | TransitionAccessTokenVerifier
+        | None = None,
         *,
-        token_profile: Literal["principal_v1", "feishu_native_v2"] = "principal_v1",
+        token_profile: Literal["principal_v1", "feishu_native_v2", "transition"] = "principal_v1",
         expected_feishu_tenant: str | None = None,
         http_client: httpx.Client | None = None,
         async_http_client: httpx.AsyncClient | None = None,
     ) -> None:
         if verifier is not None and verifier.config.audience != config.audience:
             raise ValueError("verifier audience does not match config audience")
-        if token_profile not in {"principal_v1", "feishu_native_v2"}:
-            raise ValueError("token_profile must be principal_v1 or feishu_native_v2")
-        if token_profile == "feishu_native_v2":
+        if token_profile not in {"principal_v1", "feishu_native_v2", "transition"}:
+            raise ValueError("unsupported browser token profile")
+        if token_profile == "transition":
+            if not isinstance(verifier, TransitionAccessTokenVerifier):
+                raise ValueError("transition browser SSO requires an explicit migration verifier")
+            if (
+                verifier.config.issuer != config.issuer
+                or expected_feishu_tenant != verifier.expected_feishu_tenant
+                or verifier.required_purpose != "access"
+                or verifier.allowed_channels != frozenset({"feishu_oauth"})
+            ):
+                raise ValueError("transition browser verifier binding or policy mismatch")
+        elif token_profile == "feishu_native_v2":
             if expected_feishu_tenant is None:
                 raise ValueError("native browser SSO requires expected_feishu_tenant")
             if verifier is not None and not isinstance(verifier, NativeAccessTokenVerifier):
@@ -106,8 +120,8 @@ class BrowserSSO:
                 http_client=http_client,
                 async_http_client=async_http_client,
             )
-        elif isinstance(verifier, NativeAccessTokenVerifier):
-            raise ValueError("v1 browser SSO cannot use a native verifier")
+        elif isinstance(verifier, (NativeAccessTokenVerifier, TransitionAccessTokenVerifier)):
+            raise ValueError("v1 browser SSO requires a v1 verifier")
         self._config = config
         self._client = client
         self._verifier = verifier or AccessTokenVerifier(config)
@@ -126,8 +140,16 @@ class BrowserSSO:
         return self._client
 
     @property
-    def verifier(self) -> AccessTokenVerifier | NativeAccessTokenVerifier:
+    def verifier(
+        self,
+    ) -> AccessTokenVerifier | NativeAccessTokenVerifier | TransitionAccessTokenVerifier:
         return self._verifier
+
+    def canonical_subject(self, subject: str) -> str:
+        """Normalize an old trusted cookie subject only in explicit transition mode."""
+        if isinstance(self._verifier, TransitionAccessTokenVerifier):
+            return self._verifier.identity_map.canonical_subject(subject)
+        return subject
 
     @property
     def authorization_endpoint(self) -> str:
@@ -321,7 +343,9 @@ class BrowserSSO:
     ) -> BrowserSession:
         self._require_context(context)
         _require_browser_binding(context, missing=InvalidResponse)
-        if expected_subject_id is not None and context.subject_id != expected_subject_id:
+        if expected_subject_id is not None and context.subject_id != self.canonical_subject(
+            expected_subject_id
+        ):
             raise ReauthRequired(
                 "browser_session_subject_changed", "refreshed token belongs to another subject"
             )
@@ -345,8 +369,14 @@ class BrowserSSO:
         payload = _json_object(response) or {}
         if payload.get("active") is not True:
             raise ReauthRequired("browser_session_revoked", "browser sign-in is no longer active")
+        returned_subject = payload.get("subject_id")
+        if isinstance(context, TransitionIdentity) and isinstance(returned_subject, str):
+            try:
+                returned_subject = self.canonical_subject(returned_subject)
+            except (OAuthSDKError, ValueError):
+                returned_subject = None
         if (
-            payload.get("subject_id") != context.subject_id
+            returned_subject != context.subject_id
             or payload.get("audience") != self._config.audience
         ):
             raise InvalidResponse(
@@ -355,7 +385,41 @@ class BrowserSSO:
         return context
 
     def _require_context(self, context: BrowserIdentity) -> BrowserIdentity:
-        if self._token_profile == "feishu_native_v2":
+        if self._token_profile == "transition":
+            if not isinstance(context, TransitionIdentity) or not isinstance(
+                self._verifier, TransitionAccessTokenVerifier
+            ):
+                raise ReauthRequired(
+                    "browser_identity_contract_mismatch", "transition browser identity required"
+                )
+            source = context.raw_claims.get("source")
+            channel = (
+                cast(dict[str, Any], source).get("channel") if isinstance(source, dict) else None
+            )
+            client = context.raw_claims.get(
+                "client_id" if context.profile == "feishu_native_v2" else "browser_client_id"
+            )
+            try:
+                canonical = self.canonical_subject(context.wire_subject)
+            except (OAuthSDKError, ValueError) as exc:
+                raise ReauthRequired(
+                    "browser_identity_contract_mismatch", "transition browser binding invalid"
+                ) from exc
+            if (
+                context.issuer != self._config.issuer
+                or context.audience != self._config.audience
+                or context.mapping_revision != self._verifier.identity_map.revision
+                or context.mapping_tenant != self._expected_feishu_tenant
+                or context.raw_claims.get("sub") != context.wire_subject
+                or canonical != context.person_key
+                or context.raw_claims.get("purpose", "access") != "access"
+                or channel != "feishu_oauth"
+                or client != self._client.client_id
+            ):
+                raise ReauthRequired(
+                    "browser_identity_contract_mismatch", "transition browser binding invalid"
+                )
+        elif self._token_profile == "feishu_native_v2":
             if not isinstance(context, NativeIdentity):
                 raise ReauthRequired(
                     "browser_identity_contract_mismatch", "native browser identity required"
