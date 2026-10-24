@@ -34,6 +34,31 @@ def _exact_text(value: object) -> bool:
     )
 
 
+def select_native_profile(token: object) -> bool:
+    """Inspect a bounded selector only; the chosen verifier still proves the identity."""
+    if not isinstance(token, str):
+        raise ReauthRequired("migration_token_invalid", "invalid migration access token")
+    try:
+        # Inspect only a bounded header. PyJWT's header helper also decodes
+        # the payload, so calling it here would precede the native size gate.
+        end = token.find(".", 0, _MAX_SELECTOR_HEADER_BYTES + 1)
+        if end <= 0:
+            raise ValueError("invalid header envelope")
+        segment = token[:end].encode("ascii")
+        header = json.loads(base64.urlsafe_b64decode(segment + b"=" * (-len(segment) % 4)))
+        native = bool(
+            isinstance(header, dict) and cast(dict[str, Any], header).get("typ") == "at+jwt"
+        )
+        if native and (
+            len(token) > STRICT_ACCESS_TOKEN_MAX_BYTES
+            or len(token.encode("utf-8")) > STRICT_ACCESS_TOKEN_MAX_BYTES
+        ):
+            raise ValueError("native token exceeds strict size bound")
+        return native
+    except (ValueError, UnicodeError, RecursionError) as exc:
+        raise ReauthRequired("migration_token_invalid", "invalid migration access token") from exc
+
+
 @dataclass(frozen=True, slots=True)
 class MigrationIdentityMap:
     """A frozen, issuer/tenant-scoped bijection from verified migration material.
@@ -193,29 +218,7 @@ class TransitionAccessTokenVerifier:
 
     @staticmethod
     def _native_profile(token: object) -> bool:
-        if not isinstance(token, str):
-            raise ReauthRequired("migration_token_invalid", "invalid migration access token")
-        try:
-            # Inspect only a bounded header. PyJWT's header helper also decodes
-            # the payload, so calling it here would precede the native size gate.
-            end = token.find(".", 0, _MAX_SELECTOR_HEADER_BYTES + 1)
-            if end <= 0:
-                raise ValueError("invalid header envelope")
-            segment = token[:end].encode("ascii")
-            header = json.loads(base64.urlsafe_b64decode(segment + b"=" * (-len(segment) % 4)))
-            native = bool(
-                isinstance(header, dict) and cast(dict[str, Any], header).get("typ") == "at+jwt"
-            )
-            if native and (
-                len(token) > STRICT_ACCESS_TOKEN_MAX_BYTES
-                or len(token.encode("utf-8")) > STRICT_ACCESS_TOKEN_MAX_BYTES
-            ):
-                raise ValueError("native token exceeds strict size bound")
-            return native
-        except (ValueError, UnicodeError, RecursionError) as exc:
-            raise ReauthRequired(
-                "migration_token_invalid", "invalid migration access token"
-            ) from exc
+        return select_native_profile(token)
 
     def verify(self, token: str) -> TransitionIdentity:
         if self._native_profile(token):

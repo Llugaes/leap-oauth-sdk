@@ -7,6 +7,7 @@ from .browser import (
     AuthorizationRequest,
     BrowserSession,
     BrowserSSO,
+    DualAccessTokenVerifier,
     LogoutScope,
     classify_response,
 )
@@ -37,6 +38,13 @@ from .principals import (
     PrincipalSelectionError,
     PrincipalStatus,
 )
+from .self_binding import (
+    SelfBinding,
+    SelfBindingMissing,
+    SelfBindingResolver,
+    SelfBindingResult,
+    SelfBindingUnavailable,
+)
 from .tokens import (
     AccessTokenContext,
     AccessTokenVerifier,
@@ -45,7 +53,7 @@ from .tokens import (
 )
 from .transition import MigrationIdentityMap, TransitionAccessTokenVerifier, TransitionIdentity
 
-__version__ = "0.5.0.dev2"
+__version__ = "0.5.0.dev3"
 
 
 def static_dir() -> Path:
@@ -66,6 +74,7 @@ __all__ = [
     "CookieResolution",
     "CookieSession",
     "CookieSessionManager",
+    "DualAccessTokenVerifier",
     "Forbidden",
     "InvalidResponse",
     "JsonFileMemberStore",
@@ -88,6 +97,11 @@ __all__ = [
     "ReauthRequired",
     "RegisteredClaimsPolicy",
     "Retryable",
+    "SelfBinding",
+    "SelfBindingMissing",
+    "SelfBindingResolver",
+    "SelfBindingResult",
+    "SelfBindingUnavailable",
     "StoredMembers",
     "TransitionAccessTokenVerifier",
     "TransitionIdentity",

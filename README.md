@@ -90,6 +90,51 @@ rolling the receiver back to the old v1-only SDK would require users to sign in 
 An issuance rollback must keep the transition receiver until its own exit conditions
 are satisfied. Cookies and encryption contexts must not be shared between tenants.
 
+### Online self binding and dual browser replies (0.5.0.dev3)
+
+`SelfBindingResolver` is a separate, opt-in client for a user's own identity mapping.
+Pass existing verifiers bound to this service's issuer and audience; it verifies the
+token locally before sending that same Bearer to `/api/identity/binding/self`.
+It never uses a directory/service credential or changes signed claims.
+
+```python
+from leap_oauth_sdk import (
+    SelfBinding, SelfBindingMissing, SelfBindingResolver, SelfBindingUnavailable,
+)
+
+resolver = SelfBindingResolver(
+    config,
+    legacy_verifier=legacy_verifier,
+    native_verifier=native_verifier,
+    enrollment="off",
+)
+result = resolver.resolve(access_token)  # resolve_async is also available
+if isinstance(result, SelfBinding):
+    # Select a storage format explicitly; this object does not grant permission.
+    legacy_key = result.legacy_subject
+    person_key = result.person_key
+    # Only lookup="person" identifies the canonical legacy storage key.
+elif isinstance(result, SelfBindingMissing):
+    pass  # Keep the existing v1 authorization path; never clear the login here.
+elif isinstance(result, SelfBindingUnavailable):
+    pass  # Treat this lookup as unavailable and allow a later retry.
+```
+
+Legacy and native indexes stay separate, so a legacy alias cannot become a native
+storage key. Freshness is capped by the server, the local cap and the verified token
+expiry; cache hits do not extend it. `epoch_invalidated()` reports only what this
+resolver instance has observed. OBO never calls the endpoint and can only reuse a
+still-fresh direct cache entry. Enrollment is unavailable in this release; no background
+threads, tasks, service credentials or new logins are created. Call `close()` when done.
+
+For browser refresh replies that can use either original token profile, use
+`BrowserSSO(..., token_profile="dual", verifier=DualAccessTokenVerifier(...),
+expected_feishu_tenant=...)`. The dual verifier takes the original `legacy` and `native`
+verifiers. A custom verifier implementing the same sync/async protocol is also accepted.
+Browser SSO does no mapping: it returns the verified wire identity and the AS's rotated
+refresh credential unchanged. Passing `expected_subject_id` to dual refresh is rejected
+before sending the request. The three existing browser profiles retain their behavior.
+
 ### Strict native receiver
 
 The `leap_oauth_sdk.native` module accepts the final native contract. Its `ver` is

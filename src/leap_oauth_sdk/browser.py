@@ -13,7 +13,8 @@ import hashlib
 import json
 import secrets
 from dataclasses import dataclass, field
-from typing import Any, Literal, cast
+from typing import Any, Literal, Protocol, cast
+from unicodedata import category
 from urllib.parse import urlencode
 
 import httpx
@@ -22,7 +23,7 @@ from .config import BrowserClientConfig, LeapAuthConfig
 from .errors import Forbidden, InvalidResponse, OAuthSDKError, ReauthRequired, Retryable
 from .native import NativeAccessTokenVerifier, NativeIdentity
 from .tokens import AccessTokenContext, AccessTokenVerifier
-from .transition import TransitionAccessTokenVerifier, TransitionIdentity
+from .transition import TransitionAccessTokenVerifier, TransitionIdentity, select_native_profile
 
 LogoutScope = Literal["browser", "current"]
 BrowserIdentity = AccessTokenContext | NativeIdentity | TransitionIdentity
@@ -74,6 +75,41 @@ class BrowserSession:
         }
 
 
+class DualTokenVerifier(Protocol):
+    @property
+    def config(self) -> LeapAuthConfig: ...
+
+    def verify(self, token: str) -> AccessTokenContext | NativeIdentity: ...
+
+    async def verify_async(self, token: str) -> AccessTokenContext | NativeIdentity: ...
+
+
+class DualAccessTokenVerifier:
+    """Select one original verifier; a rejected signature never falls back."""
+
+    def __init__(self, *, legacy: AccessTokenVerifier, native: NativeAccessTokenVerifier) -> None:
+        if (legacy.config.issuer, legacy.config.audience) != (
+            native.config.issuer,
+            native.config.audience,
+        ):
+            raise ValueError("dual verifier issuer and audience must match")
+        self._legacy, self._native = legacy, native
+
+    @property
+    def config(self) -> LeapAuthConfig:
+        return self._legacy.config
+
+    def verify(self, token: str) -> AccessTokenContext | NativeIdentity:
+        if select_native_profile(token):
+            return self._native.verify(token)
+        return self._legacy.verify(token)
+
+    async def verify_async(self, token: str) -> AccessTokenContext | NativeIdentity:
+        if select_native_profile(token):
+            return await self._native.verify_async(token)
+        return await self._legacy.verify_async(token)
+
+
 class BrowserSSO:
     """Backend calls for one registered browser client."""
 
@@ -84,18 +120,32 @@ class BrowserSSO:
         verifier: AccessTokenVerifier
         | NativeAccessTokenVerifier
         | TransitionAccessTokenVerifier
+        | DualTokenVerifier
         | None = None,
         *,
-        token_profile: Literal["principal_v1", "feishu_native_v2", "transition"] = "principal_v1",
+        token_profile: Literal[
+            "principal_v1", "feishu_native_v2", "transition", "dual"
+        ] = "principal_v1",
         expected_feishu_tenant: str | None = None,
         http_client: httpx.Client | None = None,
         async_http_client: httpx.AsyncClient | None = None,
     ) -> None:
         if verifier is not None and verifier.config.audience != config.audience:
             raise ValueError("verifier audience does not match config audience")
-        if token_profile not in {"principal_v1", "feishu_native_v2", "transition"}:
+        if token_profile not in {"principal_v1", "feishu_native_v2", "transition", "dual"}:
             raise ValueError("unsupported browser token profile")
-        if token_profile == "transition":
+        if token_profile == "dual":
+            if verifier is None or isinstance(verifier, TransitionAccessTokenVerifier):
+                raise ValueError("dual browser SSO requires an explicit dual verifier")
+            if (
+                verifier.config.issuer != config.issuer
+                or not isinstance(expected_feishu_tenant, str)
+                or not expected_feishu_tenant
+                or expected_feishu_tenant != expected_feishu_tenant.strip()
+                or any(category(char) == "Cc" for char in expected_feishu_tenant)
+            ):
+                raise ValueError("dual browser verifier issuer or exact tenant mismatch")
+        elif token_profile == "transition":
             if not isinstance(verifier, TransitionAccessTokenVerifier):
                 raise ValueError("transition browser SSO requires an explicit migration verifier")
             if (
@@ -143,7 +193,12 @@ class BrowserSSO:
     @property
     def verifier(
         self,
-    ) -> AccessTokenVerifier | NativeAccessTokenVerifier | TransitionAccessTokenVerifier:
+    ) -> (
+        AccessTokenVerifier
+        | NativeAccessTokenVerifier
+        | TransitionAccessTokenVerifier
+        | DualTokenVerifier
+    ):
         return self._verifier
 
     def canonical_subject(self, subject: str) -> str:
@@ -212,6 +267,8 @@ class BrowserSSO:
         self, refresh_token: str, *, expected_subject_id: str | None = None
     ) -> BrowserSession:
         """Rotate the refresh credential. The old ``refresh_token`` is spent afterwards."""
+        if self._token_profile == "dual" and expected_subject_id is not None:
+            raise ValueError("dual browser refresh cannot compare subjects across profiles")
         payload = self._token_payload(self._send_sync(self._refresh_request(refresh_token)))
         context = self._verifier.verify(payload["access_token"])
         return self._session(payload, context, expected_subject_id)
@@ -219,6 +276,8 @@ class BrowserSSO:
     async def refresh_async(
         self, refresh_token: str, *, expected_subject_id: str | None = None
     ) -> BrowserSession:
+        if self._token_profile == "dual" and expected_subject_id is not None:
+            raise ValueError("dual browser refresh cannot compare subjects across profiles")
         response = await self._send_async(self._refresh_request(refresh_token))
         payload = self._token_payload(response)
         context = await self._verifier.verify_async(payload["access_token"])
@@ -386,6 +445,12 @@ class BrowserSSO:
         return context
 
     def _require_context(self, context: BrowserIdentity) -> BrowserIdentity:
+        if self._token_profile == "dual" and not isinstance(
+            context, (AccessTokenContext, NativeIdentity)
+        ):
+            raise ReauthRequired(
+                "browser_identity_contract_mismatch", "dual browser identity required"
+            )
         if self._token_profile == "transition":
             if not isinstance(context, TransitionIdentity) or not isinstance(
                 self._verifier, TransitionAccessTokenVerifier
@@ -420,7 +485,9 @@ class BrowserSSO:
                 raise ReauthRequired(
                     "browser_identity_contract_mismatch", "transition browser binding invalid"
                 )
-        elif self._token_profile == "feishu_native_v2":
+        elif self._token_profile == "feishu_native_v2" or (
+            self._token_profile == "dual" and isinstance(context, NativeIdentity)
+        ):
             if not isinstance(context, NativeIdentity):
                 raise ReauthRequired(
                     "browser_identity_contract_mismatch", "native browser identity required"

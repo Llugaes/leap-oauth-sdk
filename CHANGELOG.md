@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.5.0.dev3 (2026-10-25)
+
+- Add opt-in `SelfBindingResolver` with locally verified user Bearer requests, separate
+  legacy/native cache indexes, bounded freshness and epoch invalidation. Mapping failures
+  return values and never request a new login. Enrollment remains disabled.
+- Add `BrowserSSO(token_profile="dual")` and `DualAccessTokenVerifier` to retain the
+  original browser refresh credential across verified v1/native responses without mapping.
+  Cross-profile expected-subject checks are rejected before spending a refresh token.
+- Existing verifiers, static migration maps and default browser profiles retain their behavior.
+
 ## 0.5.0.dev2 (2026-10-24)
 
 - Separate explicit legacy channel policy from the strict native channel policy during
