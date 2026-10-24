@@ -19,6 +19,14 @@ from .cookie_session import (
     CookieSessionManager,
 )
 from .errors import Forbidden, InvalidResponse, OAuthSDKError, ReauthRequired, Retryable
+from .identity_binding_export import (
+    EXPORT_MAX_ITEMS,
+    EXPORT_TYP,
+    EXPORT_VER,
+    IdentityBindingExportRejected,
+    VerifiedExport,
+    verify_identity_binding_export,
+)
 from .members import (
     JsonFileMemberStore,
     Member,
@@ -53,7 +61,7 @@ from .tokens import (
 )
 from .transition import MigrationIdentityMap, TransitionAccessTokenVerifier, TransitionIdentity
 
-__version__ = "0.5.0.dev3"
+__version__ = "0.5.0.dev4"
 
 
 def static_dir() -> Path:
@@ -62,6 +70,12 @@ def static_dir() -> Path:
 
 
 __all__ = [
+    "EXPORT_MAX_ITEMS",
+    "EXPORT_TYP",
+    "EXPORT_VER",
+    "IdentityBindingExportRejected",
+    "VerifiedExport",
+    "verify_identity_binding_export",
     "DEFAULT_TOKEN_VERSION",
     "ROTATION_IN_PROGRESS",
     "AccessTokenContext",

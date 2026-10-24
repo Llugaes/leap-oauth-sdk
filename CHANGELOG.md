@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.5.0.dev4 (2026-10-25)
+
+- Add the public C-X export verifier and immutable `VerifiedExport`, independent of access
+  token validation. Static JWKS decisions follow the AS export contract. URL reads are one
+  five-second GET with no redirects, cache or retry and a 64 KiB raw UTF-8 JSON limit.
+- Share actual AS producer vectors with the AS client, including signature confusion,
+  zero generation, strict request binding and an actual same-epoch append chain.
+- Reuse existing PyJWT JWK conversion and private-field checks without applying the access
+  token verifier's additional key-use policy. Existing token and browser behavior is unchanged.
+
 ## 0.5.0.dev3 (2026-10-25)
 
 - Add opt-in `SelfBindingResolver` with locally verified user Bearer requests, separate

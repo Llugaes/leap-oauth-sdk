@@ -18,6 +18,43 @@ uv add leap-oauth-sdk
 
 Python 3.12 or newer.
 
+## C-X export verification (0.5.0.dev4)
+
+`verify_identity_binding_export` verifies a bounded, signed identity-binding export. It does
+not accept access tokens, fetch people, change grants or activate a migration.
+
+```python
+from leap_oauth_sdk import IdentityBindingExportRejected, verify_identity_binding_export
+
+try:
+    export = verify_identity_binding_export(
+        jws,
+        issuer="https://auth.example.com",
+        request_subjects=["usr_one", "usr_two"],
+        jwks=trusted_public_jwks,
+    )
+except IdentityBindingExportRejected:
+    abort_import()
+else:
+    # Verify your pinned epoch/generation/chain and local authorization separately.
+    consume_verified_mapping(export.items)
+```
+
+Provide exactly one of `jwks` and `jwks_url`. A URL must be HTTP(S), with no credentials,
+query or fragment. Each call makes one GET with a five-second timeout, no redirects,
+cache or retry, and at most 64 KiB of raw UTF-8 JSON. JWS format and request errors cause
+no HTTP call. All verification failures use the same fixed rejection message.
+`VerifiedExport` and its items are immutable. C-X has no implicit freshness or permission
+meaning; the caller owns the pinned proof, file limits and activation decision.
+
+The six public exports are `EXPORT_TYP`, `EXPORT_VER`, `EXPORT_MAX_ITEMS`,
+`IdentityBindingExportRejected`, `VerifiedExport` and `verify_identity_binding_export`.
+Static JWKS selection matches AS commit `3b499cd`, including its selected-key-only private
+material check. It reuses the SDK's existing `jwt.PyJWK.from_dict` conversion primitive;
+it does not apply the token verifier's additional key-use filtering. Existing access token
+and browser verification are unchanged. The shared, producer-generated component vectors
+are in repository `testdata/identity_binding_export_vectors.json` and contain no private key.
+
 ## Feishu native v2
 
 ### Controlled migration support (0.5.0.dev2)
