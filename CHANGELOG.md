@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.5.0.dev7 (2026-11-06)
+
+- Add explicit `is_platform_owner_probe` for verified, resource-bound installation
+  probes. It requires a separate signed capability, the probe purpose and an
+  unnested OBO actor, with existing namespace and expiry checks.
+- This decision never grants delegated access or an application Owner role.
+  Direct Owner checks and browser/CLI refresh behavior remain unchanged.
+
+## 0.5.0.dev6 (2026-11-06)
+
+- Add explicit `is_platform_owner` for a verified direct-user access identity,
+  without additional directory calls, Owner lists or service credentials.
+
 ## 0.5.0.dev5 (2026-11-05)
 
 - Add explicit bearer `sso.refresh()` for a backend that requires renewal before the

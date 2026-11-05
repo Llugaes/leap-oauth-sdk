@@ -69,6 +69,13 @@ can authorize their global Owner without maintaining Owner IDs; ordinary local
 member permissions remain independent. Removing an Owner takes effect as existing
 short access tokens expire and original refresh credentials renew normally.
 
+`is_platform_owner_probe(identity)` recognizes the separate signed
+`sakamoto_platform_owner_probe` capability only with an `entitlement_probe`
+verifier and an unnested OBO identity. It lets a target's installation probe
+recognize central eligibility without a local Owner list. It grants no business
+access or Owner role; keep it out of access checks and task snapshots. The
+original `is_platform_owner` helper and ordinary delegated access are unchanged.
+
 ### Controlled migration support (0.5.0.dev2)
 
 `allowed_channels` controls the strict native profile. For original v1 channels such as

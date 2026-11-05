@@ -168,6 +168,31 @@ class NativeAccessTokenVerifier:
             and identity.expires_at + self._config.leeway_seconds > time.time()
         )
 
+    def is_platform_owner_probe(self, identity: object) -> bool:
+        """Recognize installation eligibility only on an already verified probe.
+
+        This capability never grants access or an application Owner role.
+        Reverify the token on every request; do not persist this decision.
+        """
+        return bool(
+            isinstance(identity, NativeIdentity)
+            and identity.issuer == self._config.issuer
+            and identity.audience == self._config.audience
+            and identity.feishu_tenant == self._tenant
+            and identity.purpose == self._purpose == "entitlement_probe"
+            and "obo" in self._channels
+            and identity.source.get("channel") == "obo"
+            and identity.actor is not None
+            and identity.actor.get("type") == "obo"
+            and identity.actor.get("sub") == identity.client_id
+            and "act" not in identity.actor
+            and identity.raw_claims.get("ver") == NATIVE_TOKEN_VERSION
+            and "sakamoto_platform_owner" not in identity.raw_claims
+            and identity.raw_claims.get("sakamoto_platform_owner_probe") is True
+            and identity.status != "inactive"
+            and identity.expires_at + self._config.leeway_seconds > time.time()
+        )
+
     def verify(self, token: str) -> NativeIdentity:
         self._header(token)
         verified = self._registered.verify_claims(token, policy=RegisteredClaimsPolicy.STRICT)
