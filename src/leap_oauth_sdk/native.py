@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 import unicodedata
 from collections.abc import Iterable, Mapping, Sequence
 from copy import deepcopy
@@ -143,6 +144,29 @@ class NativeAccessTokenVerifier:
     @property
     def expected_feishu_tenant(self) -> str:
         return self._tenant
+
+    def is_platform_owner(self, identity: object) -> bool:
+        """Read a capability only from this resource's already verified identity.
+
+        Reverify the token on each request. Never pass request JSON or copy this
+        capability onto delegated tokens; ordinary local roles are independent.
+        """
+        return bool(
+            isinstance(identity, NativeIdentity)
+            and identity.issuer == self._config.issuer
+            and identity.audience == self._config.audience
+            and identity.feishu_tenant == self._tenant
+            and identity.purpose == self._purpose == "access"
+            and "feishu_oauth" in self._channels
+            and identity.source.get("channel") == "feishu_oauth"
+            and identity.actor is None
+            and "act" not in identity.raw_claims
+            and "parent_jti" not in identity.raw_claims
+            and identity.raw_claims.get("ver") == NATIVE_TOKEN_VERSION
+            and identity.raw_claims.get("sakamoto_platform_owner") is True
+            and identity.status != "inactive"
+            and identity.expires_at + self._config.leeway_seconds > time.time()
+        )
 
     def verify(self, token: str) -> NativeIdentity:
         self._header(token)

@@ -337,7 +337,7 @@ wheels = [
 
 [[package]]
 name = "leap-oauth-sdk"
-version = "0.5.0.dev5"
+version = "0.5.0.dev6"
 source = { editable = "." }
 dependencies = [
     { name = "httpx" },

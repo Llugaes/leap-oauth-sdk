@@ -57,6 +57,18 @@ are in repository `testdata/identity_binding_export_vectors.json` and contain no
 
 ## Feishu native v2
 
+`NativeAccessTokenVerifier.is_platform_owner(identity)` reads the optional signed
+`sakamoto_platform_owner` capability from this resource's verified native identity.
+Call `verify` for the current request first; do not pass request JSON or retain a
+verified identity beyond the token lifetime. The helper checks issuer, audience,
+tenant, purpose, channel and the existing expiry leeway without making a network call.
+
+Sakamoto's global-owner authority supplies this capability for direct user access.
+Bot, OBO, actor-bearing and entitlement-probe identities cannot use it. Services
+can authorize their global Owner without maintaining Owner IDs; ordinary local
+member permissions remain independent. Removing an Owner takes effect as existing
+short access tokens expire and original refresh credentials renew normally.
+
 ### Controlled migration support (0.5.0.dev2)
 
 `allowed_channels` controls the strict native profile. For original v1 channels such as
