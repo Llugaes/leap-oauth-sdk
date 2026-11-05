@@ -434,6 +434,12 @@ sign-in counts as a successful logout.
   `GET`, `HEAD` and `OPTIONS` may retry once; other methods return the original readable 401
   without replaying the request. A safe retry also keeps the newer session if its retry limit
   is reached. The method of a `Request` object is respected.
+- `refresh()` explicitly renews the stored bearer pair even before access-token expiry,
+  sharing the same in-flight rotation with other callers. It sends only the existing
+  refresh credential to the configured backend. Temporary failures retain the pair;
+  rejected refresh credentials follow the existing sign-in recovery policy. Cookie mode
+  and calls during logout reject this operation with `bearer_refresh_required`.
+  It does not replay a business request or change the default `fetch()` 401 policy.
 - A duplicated tab copies `sessionStorage` and with it a refresh token the other tab may
   already have spent. The server then answers `refresh_rotation_in_progress`; the module drops
   the copy and signs in again through SSO instead of replaying it. In cookie mode the same

@@ -112,6 +112,7 @@
     var attempted = false;
     var leaving = false;
     var refreshing = null;
+    var refreshingSession = null;
     var beginning = null;
     // Bumped by logout: a sign-in, callback or refresh started earlier must not finish.
     var epoch = 0;
@@ -319,12 +320,13 @@
       throw error;
     }
 
-    async function freshSession() {
+    async function freshSession(force) {
       var session = loadSession();
       if (!session) return unauthorized(new LeapSSOError(messages.loginRequired, {status: 401}));
-      if (session.expires_at * 1000 - now() > REFRESH_MARGIN_MS) return session;
+      if (!force && session.expires_at * 1000 - now() > REFRESH_MARGIN_MS) return session;
       if (!refreshing) {
-        refreshing = refreshNow(session).finally(function () { refreshing = null; });
+        refreshingSession = session;
+        refreshing = refreshNow(session).finally(function () { refreshing = null; refreshingSession = null; });
       }
       return refreshing;
     }
@@ -371,7 +373,9 @@
           var current = bearer ? loadSession() : null;
           // A spent refresh must first store its replacement so logout can revoke it.
           // A newer, already-fresh session can log out immediately and discard late work.
-          if (refreshing && current && current.expires_at * 1000 - now() <= REFRESH_MARGIN_MS) {
+          if (refreshing && current && (current.expires_at * 1000 - now() <= REFRESH_MARGIN_MS ||
+              refreshingSession && current.access_token === refreshingSession.access_token &&
+              current.refresh_token === refreshingSession.refresh_token && current.expires_at === refreshingSession.expires_at)) {
             await refreshing;
           }
         } finally {
@@ -401,6 +405,11 @@
     return {
       boot: boot,
       fetch: function (url, init) { return request(url, init, 0); },
+      refresh: function () {
+        if (!bearer || leaving) return Promise.reject(new LeapSSOError(messages.sessionExpired,
+          {status: 400, code: "bearer_refresh_required"}));
+        return freshSession(true);
+      },
       login: function () { leaving = false; return begin(true); },
       logout: logout,
       config: config,

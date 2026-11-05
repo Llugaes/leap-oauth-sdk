@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.5.0.dev5 (2026-11-05)
+
+- Add explicit bearer `sso.refresh()` for a backend that requires renewal before the
+  current access token expires. It reuses the stored refresh credential and the existing
+  single rotation promise; default `fetch()` behavior remains unchanged.
+- Logout joins an in-flight renewal of its current credential pair, including an explicit
+  renewal, while a newer independent pair can still invalidate late work immediately.
+- Cookie mode and calls made during logout reject explicit bearer renewal. Temporary
+  renewal failures keep credentials; successful renewal does not start a new sign-in.
+
 ## 0.5.0.dev4 (2026-10-25)
 
 - Add the public C-X export verifier and immutable `VerifiedExport`, independent of access

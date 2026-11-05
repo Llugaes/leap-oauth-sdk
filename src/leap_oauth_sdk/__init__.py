@@ -61,7 +61,7 @@ from .tokens import (
 )
 from .transition import MigrationIdentityMap, TransitionAccessTokenVerifier, TransitionIdentity
 
-__version__ = "0.5.0.dev4"
+__version__ = "0.5.0.dev5"
 
 
 def static_dir() -> Path:

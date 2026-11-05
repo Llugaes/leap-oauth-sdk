@@ -622,3 +622,51 @@ test("a safe retry keeps the sent method even if the caller mutates its init", a
   assert.equal((await signed.sso.fetch("/api/data", init)).status, 200);
   assert.deepEqual(backend.calls.map(call => call.method), ["GET", "GET"]);
 });
+
+test('explicit refresh renews an unexpired bearer once for concurrent callers',async()=>{
+  const backend=new Backend({[BASE+'/refresh']:call=>{
+    assert.deepEqual(call.body,{refresh_token:'rt-1'});
+    return json(200,session({access_token:'at-native',refresh_token:'rt-native'}));
+  }});
+  const {browser,sso}=await signedIn(backend);
+  const values=await Promise.all([sso.refresh(),sso.refresh()]);
+  assert.equal(backend.count(BASE+'/refresh'),1);
+  assert.equal(values[0].access_token,'at-native');
+  assert.equal(values[1].refresh_token,'rt-native');
+  assert.equal(JSON.parse(browser.store.get('leap.sso.session')).refresh_token,'rt-native');
+  assert.equal(browser.assigned.length,0);
+});
+
+test('explicit refresh temporary failure keeps original credentials without redirect',async()=>{
+  const backend=new Backend({[BASE+'/refresh']:()=>json(503,{error:'unavailable'})});
+  const {browser,sso}=await signedIn(backend);
+  const original=browser.store.get('leap.sso.session');
+  await assert.rejects(sso.refresh(),error=>error.status===503&&error.retryable);
+  assert.equal(browser.store.get('leap.sso.session'),original);
+  assert.equal(browser.assigned.length,0);
+});
+
+test('logout waits for an explicit refresh before revoking the replacement',async()=>{
+  let resolve;
+  const pending=new Promise(done=>{resolve=done;});
+  const backend=new Backend({[BASE+'/refresh']:()=>pending,[BASE+'/logout']:call=>{
+    assert.equal(call.authorization,'Bearer at-native');
+    return json(200,{});
+  }});
+  const {browser,sso}=await signedIn(backend);
+  const refreshing=sso.refresh();
+  const loggingOut=sso.logout();
+  await new Promise(done=>setImmediate(done));
+  assert.equal(backend.count(BASE+'/logout'),0);
+  resolve(json(200,session({access_token:'at-native',refresh_token:'rt-native'})));
+  await Promise.all([refreshing,loggingOut]);
+  assert.equal(backend.count(BASE+'/logout'),1);
+  assert.equal(browser.store.has('leap.sso.session'),false);
+});
+
+test('explicit refresh does not issue a bearer operation in cookie mode',async()=>{
+  const backend=new Backend();
+  const {sso}=start(new Browser(),backend,{credentialMode:'cookie'});
+  await assert.rejects(sso.refresh(),error=>error.code==='bearer_refresh_required');
+  assert.equal(backend.calls.length,0);
+});
